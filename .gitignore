@@ -1,0 +1,69 @@
+# Xcode
+#
+# Build generated
+build/
+DerivedData/
+*.xcuserstate
+*.xcworkspace
+*.xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/xcuserdata/*.xcuserdatad/
+
+# User-specific files
+*.swp
+*.swo
+*.DS_Store
+*.user
+*.userprefs
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.pbxuser
+*.xcuserdatad
+
+# Swift Package Manager
+#
+# Swift Package Manager files
+/.build/
+/Package.resolved
+
+# CocoaPods
+#
+# CocoaPods files
+Pods/
+Podfile.lock
+
+# Carthage
+#
+# Carthage files
+Carthage/Build/
+Carthage/Checkouts/
+
+# Fastlane
+#
+# Fastlane files
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# Archive files
+*.xcarchive
+
+# Other
+#
+# Temporary files
+*.tmp
+*.log
+*.lock
+*.swp
+*.swo
+
+# App-specific files
+#
+# Ignore any files that are specific to your app
+# For example, if you have a configuration file that contains sensitive information
+# config.json
+# secrets.plist
+
