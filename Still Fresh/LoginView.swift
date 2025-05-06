@@ -15,8 +15,9 @@ struct LoginView : View {
         ZStack(alignment: .bottomLeading) {
             Color(color)
             VStack() {
+                Image("LoginImage").scaledToFill()
                 Text("Your groceries called-").colorInvert().font(.title)
-                Text("They want to stay fresh").colorInvert().font(.title)
+                Text("they want to stay fresh").colorInvert().font(.title)
                 SignInWithAppleButton(.signUp) {
                     request in
                 } onCompletion: {
