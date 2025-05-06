@@ -1,6 +1,7 @@
 {
   "images" : [
     {
+      "filename" : "StillFresh.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -12,6 +13,7 @@
           "value" : "dark"
         }
       ],
+      "filename" : "StillFresh 1.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -23,6 +25,7 @@
           "value" : "tinted"
         }
       ],
+      "filename" : "StillFresh 2.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"

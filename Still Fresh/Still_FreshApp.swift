@@ -11,7 +11,7 @@ import SwiftUI
 struct Still_FreshApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            LoginView()
         }
     }
 }
