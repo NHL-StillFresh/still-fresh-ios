@@ -9,6 +9,8 @@ import SwiftUI
 import AuthenticationServices
 
 struct LoginView : View {
+    @State private var showingLoginSheet = false
+
     var color = Color("LoginBackgroundColor")
     var buttonHeight:CGFloat = 50;
     var body: some View {
@@ -25,7 +27,7 @@ struct LoginView : View {
                 }.frame(height: buttonHeight)
                 Text("or").colorInvert()
                 Button(action: {
-                    
+                    showingLoginSheet = true
                 }) {
                     HStack {
                         Spacer()
@@ -37,6 +39,8 @@ struct LoginView : View {
                     .background(Color.white)
                     .foregroundColor(Color("LoginBackgroundColor"))
                     .cornerRadius(8)
+                }.sheet(isPresented: $showingLoginSheet) {
+                    LoginWithEmailView()                .presentationDetents([.medium])
                 }
 
             }.padding()
