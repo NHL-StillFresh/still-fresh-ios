@@ -39,9 +39,11 @@ struct LoginWithEmailView: View {
                 }
                 
                 if email.lowercased() == emailToLogin {
-                    userHasAccount = true;
+                    userHasAccount = true
                     return
                 }
+                
+                userHasAccount = false
             }) {
                 Text("Continue")
             }
@@ -71,6 +73,7 @@ struct LoginWithEmailView: View {
     func createAccount() -> some View{
         VStack(alignment: .leading, spacing: 8) {
             Text("Create your new account").font(.title)
+            Text("Please note, this isn't supported yet, because its in Test Mode")
             SecureField("Password", text: $password)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
             SecureField("Confirm password", text: $passwordConfirm)
