@@ -62,7 +62,8 @@ struct LoginWithEmailView: View {
     func fillInPassword() -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Fill in your password").font(.title)
-            TextField("Password", text: $password)
+            Text("Welcome back, \(email)!")
+            SecureField("Password", text: $password)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
         }
     }
@@ -70,9 +71,9 @@ struct LoginWithEmailView: View {
     func createAccount() -> some View{
         VStack(alignment: .leading, spacing: 8) {
             Text("Create your new account").font(.title)
-            TextField("Password", text: $password)
+            SecureField("Password", text: $password)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-            TextField("Confirm password", text: $passwordConfirm)
+            SecureField("Confirm password", text: $passwordConfirm)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
         }
     }
