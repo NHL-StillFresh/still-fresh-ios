@@ -58,15 +58,6 @@ open Still\ Fresh.xcodeproj
 4. Set up Supabase
 <!-- Add your Supabase configuration steps here -->
 
-
-## 🎓 Course Information
-<!-- Add your course information here -->
-[Course information will be added here]
-
-## 📝 License
-<!-- Add your license information here -->
-[License information will be added here]
-
 ## 🤝 Contributing
 This is a school project and is primarily maintained by the team members. However, if you'd like to contribute, please:
 1. Fork the repository

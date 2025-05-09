@@ -40,7 +40,7 @@ struct LoginView : View {
                     .foregroundColor(Color("LoginBackgroundColor"))
                     .cornerRadius(8)
                 }.sheet(isPresented: $showingLoginSheet) {
-                    LoginWithEmailView()                .presentationDetents([.medium])
+                    LoginWithEmailView()                 .presentationDetents([.medium])
                 }
 
             }.padding()
