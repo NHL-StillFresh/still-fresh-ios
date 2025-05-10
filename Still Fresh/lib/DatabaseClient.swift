@@ -8,6 +8,7 @@
 import Supabase
 import Foundation
 
+/// Enum used for error handling
 enum DatabaseError: Error {
     case connectionFailed
     case clientNotInitialized
