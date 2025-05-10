@@ -18,8 +18,8 @@ struct LoginView : View {
             Color(color)
             VStack() {
                 Image("LoginImage").scaledToFill()
-                Text("Your groceries called-").colorInvert().font(.title)
-                Text("they want to stay fresh").colorInvert().font(.title)
+                Text("Your groceries called-").colorInvert().font(.title).fontWeight(.semibold)
+                Text("they want toa stay fresh").colorInvert().font(.title).fontWeight(.semibold)
                 SignInWithAppleButton(.signUp) {
                     request in
                 } onCompletion: {

@@ -36,12 +36,12 @@ struct NavBar: View {
     private func updateGreeting() {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
-        case 0..<12:
-            greeting = "Good Morning"
-        case 12..<17:
-            greeting = "Good Afternoon"
-        default:
-            greeting = "Good Evening"
+            case 0..<12:
+                greeting = "Good Morning"
+            case 12..<17:
+                greeting = "Good Afternoon"
+            default:
+                greeting = "Good Evening"
         }
     }
 }
