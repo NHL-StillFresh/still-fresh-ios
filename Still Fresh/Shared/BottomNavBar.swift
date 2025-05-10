@@ -18,10 +18,10 @@ struct BottomNavBar: View {
                         Image(systemName: "bag")
                         Text("Basket")
                     }.tag(1)
-
-                EmptyView() // Placeholder for the middle tab
+                
+                EmptyView()
                     .tabItem {
-                        Image(systemName: "") // Empty to make room for the + button
+                        Image(systemName: "")
                         Text("")
                     }.tag(2)
 
@@ -46,7 +46,7 @@ struct BottomNavBar: View {
                     Button(action: {
                         showAddScreen.toggle()
                     }) {
-                        Image(systemName: "plus")
+                        Image(systemName: "camera.fill")
                             .foregroundColor(.white)
                             .font(.system(size: 24))
                             .frame(width: 60, height: 60)
@@ -55,7 +55,7 @@ struct BottomNavBar: View {
                             .shadow(radius: 4)
                     }
                     .sheet(isPresented: $showAddScreen) {
-                        EmptyView()
+                        AddView()
                     }
                     .offset(y: -30)
                     Spacer()
@@ -63,4 +63,11 @@ struct BottomNavBar: View {
             }
         }
     }
+}
+
+#Preview {
+    @Previewable @State var selectedTab = 0
+    @Previewable @State var showAddScreen = false
+    
+    BottomNavBar(selectedTab: $selectedTab, showAddScreen: $showAddScreen)
 }
