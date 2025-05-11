@@ -5,17 +5,17 @@
 //  Created by Gideon Dijkhuis on 07/05/2025.
 //
 import SwiftUI
+import Supabase
+import Foundation
 
 struct LoginWithEmailView: View {
     @State private var userHasAccount: Bool = false
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var passwordConfirm: String = ""
+    @State private var callbackMessage: String?
     @State private var goToStartView = false
     @Environment(\.dismiss) private var dismiss
-    
-    private var emailToLogin: String = "app@stillfresh.nl"
-    private var passwordToLogin: String = "123456"
     
     var body: some View {
         ZStack {
@@ -54,21 +54,19 @@ struct LoginWithEmailView: View {
                     
                     // Continue button
                     Button(action: {
-                        if email == "" {
+                        if email.isEmpty {
+                            callbackMessage = "Please provide an email address."
                             return
                         }
-                        
-                        if userHasAccount && password == passwordToLogin {
-                            goToStartView = true
+                            
+                        if userHasAccount  {
+                            authenticateUser()
                             return
+                        } else {
+                            hasExistingAccount()
                         }
                         
-                        if email.lowercased() == emailToLogin {
-                            userHasAccount = true
-                            return
-                        }
-                        
-                        userHasAccount = false
+                        return
                     }) {
                         HStack {
                             Spacer()
@@ -88,12 +86,51 @@ struct LoginWithEmailView: View {
                 .padding(.horizontal, 24)
                 .padding(.top, 12)
                 
+                Text(callbackMessage ?? "")
+                    .foregroundColor(.red)
+                
                 Spacer()
             }
             .padding()
         }
         .fullScreenCover(isPresented: $goToStartView) {
             StartView()
+        }
+    }
+    
+    struct UserModel: Decodable {
+        let user_email: String
+    }
+    
+    func hasExistingAccount() {
+        Task {
+            do {
+                let users: [UserModel] = try await SupaClient
+                    .from("users")
+                    .select("user_email")
+                    .eq("user_email", value: email)
+                    .execute()
+                    .value
+                
+                userHasAccount = users.count > 0
+            }
+            catch {
+                callbackMessage = error.localizedDescription
+            }
+        }
+    }
+    
+    func authenticateUser() {
+        Task {
+            do {
+                try await SupaClient
+                    .auth
+                    .signIn(email: email, password: password)
+                
+                goToStartView = true
+            } catch {
+                callbackMessage = error.localizedDescription
+            }
         }
     }
     
