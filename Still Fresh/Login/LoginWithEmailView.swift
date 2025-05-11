@@ -7,7 +7,7 @@
 import SwiftUI
 
 struct LoginWithEmailView: View {
-    @State private var userHasAccount: Bool? = nil
+    @State private var userHasAccount: Bool = false
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var passwordConfirm: String = ""
@@ -42,10 +42,10 @@ struct LoginWithEmailView: View {
                 
                 // Form content
                 VStack(alignment: .leading, spacing: 24) {
-                    if email == "" || userHasAccount == nil{
+                    if email == "" || !userHasAccount{
                         fillInEmail()
                     }
-                    else if userHasAccount ?? false {
+                    else if userHasAccount {
                         fillInPassword()
                     }
                     else {
@@ -58,7 +58,7 @@ struct LoginWithEmailView: View {
                             return
                         }
                         
-                        if userHasAccount ?? false && password == passwordToLogin {
+                        if userHasAccount && password == passwordToLogin {
                             goToStartView = true
                             return
                         }
