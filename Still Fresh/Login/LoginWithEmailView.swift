@@ -5,17 +5,19 @@
 //  Created by Gideon Dijkhuis on 07/05/2025.
 //
 import SwiftUI
+import Supabase
+import Foundation
 
 struct LoginWithEmailView: View {
-    @State private var userHasAccount: Bool? = nil
+    @State private var userHasAccount: Bool = false
+    @State private var userHasValidEmail: Bool = false
+    @State private var isTaskDone: Bool = false
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var passwordConfirm: String = ""
+    @State private var callbackMessage: String?
     @State private var goToStartView = false
     @Environment(\.dismiss) private var dismiss
-    
-    private var emailToLogin: String = "app@stillfresh.nl"
-    private var passwordToLogin: String = "123456"
     
     var body: some View {
         ZStack {
@@ -42,33 +44,39 @@ struct LoginWithEmailView: View {
                 
                 // Form content
                 VStack(alignment: .leading, spacing: 24) {
-                    if email == "" || userHasAccount == nil{
+                    if !userHasValidEmail {
                         fillInEmail()
                     }
-                    else if userHasAccount ?? false {
-                        fillInPassword()
-                    }
                     else {
-                        createAccount()
+                        if userHasAccount {
+                            fillInPassword()
+                        } else {
+                            createAccount()
+                        }
                     }
                     
                     // Continue button
                     Button(action: {
-                        if email == "" {
+                        callbackMessage = ""
+                        if email.isEmpty {
+                            callbackMessage = "Please provide an email address."
                             return
                         }
                         
-                        if userHasAccount ?? false && password == passwordToLogin {
-                            goToStartView = true
-                            return
+                        userHasValidEmail = isValidEmail(email)
+                        
+                        if !userHasValidEmail {
+                            callbackMessage = "Please provide a valid email address."
                         }
                         
-                        if email.lowercased() == emailToLogin {
-                            userHasAccount = true
+                        if userHasAccount {
+                            authenticateUser()
                             return
+                        } else {
+                            hasExistingAccount()
                         }
                         
-                        userHasAccount = false
+                        return
                     }) {
                         HStack {
                             Spacer()
@@ -88,12 +96,62 @@ struct LoginWithEmailView: View {
                 .padding(.horizontal, 24)
                 .padding(.top, 12)
                 
+                Text(callbackMessage ?? "")
+                    .foregroundColor(.red)
+                
                 Spacer()
             }
             .padding()
         }
         .fullScreenCover(isPresented: $goToStartView) {
             StartView()
+        }
+    }
+    
+    func isValidEmail(_ email: String) -> Bool {
+        let emailRegEx = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+
+        let emailPred = NSPredicate(format:"SELF MATCHES %@", emailRegEx)
+        return emailPred.evaluate(with: email)
+    }
+    
+    struct UserModel: Decodable {
+        let user_email: String
+    }
+    
+    func hasExistingAccount() {
+        Task {
+            do {
+                isTaskDone = false
+                defer {
+                    isTaskDone = true
+                }
+                
+                let users: [UserModel] = try await SupaClient
+                    .from("users")
+                    .select("user_email")
+                    .eq("user_email", value: email)
+                    .execute()
+                    .value
+                
+                userHasAccount = users.count > 0
+            } catch {
+                callbackMessage = error.localizedDescription
+            }
+        }
+    }
+    
+    func authenticateUser() {
+        Task {
+            do {
+                try await SupaClient
+                    .auth
+                    .signIn(email: email, password: password)
+                
+                goToStartView = true
+            } catch {
+                callbackMessage = error.localizedDescription
+            }
         }
     }
     
