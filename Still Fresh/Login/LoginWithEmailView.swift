@@ -15,7 +15,7 @@ struct LoginWithEmailView: View {
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var passwordConfirm: String = ""
-    @State private var callbackMessage: String?
+    @State private var callbackMessage: String = ""
     @State private var goToStartView = false
     @Environment(\.dismiss) private var dismiss
     
@@ -44,16 +44,19 @@ struct LoginWithEmailView: View {
                 
                 // Form content
                 VStack(alignment: .leading, spacing: 24) {
-                    if !userHasValidEmail {
-                        fillInEmail()
-                    }
-                    else {
-                        if userHasAccount {
-                            fillInPassword()
-                        } else {
+                    if userHasValidEmail && isTaskDone {
+                        if !userHasAccount {
                             createAccount()
+                        } else {
+                            fillInPassword()
                         }
                     }
+                    else {
+                        fillInEmail()
+                    }
+                    
+                    Text(callbackMessage)
+                        .foregroundColor(.red)
                     
                     // Continue button
                     Button(action: {
@@ -67,11 +70,16 @@ struct LoginWithEmailView: View {
                         
                         if !userHasValidEmail {
                             callbackMessage = "Please provide a valid email address."
+                            
+                            return
                         }
                         
                         if userHasAccount {
+                            callbackMessage = "Logging you in right now..."
                             authenticateUser()
                             return
+                        } else if !password.isEmpty{
+                            createUser()
                         } else {
                             hasExistingAccount()
                         }
@@ -91,13 +99,9 @@ struct LoginWithEmailView: View {
                         .cornerRadius(16)
                         .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
                     }
-                    .padding(.top, 16)
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 12)
-                
-                Text(callbackMessage ?? "")
-                    .foregroundColor(.red)
                 
                 Spacer()
             }
@@ -123,6 +127,7 @@ struct LoginWithEmailView: View {
         Task {
             do {
                 isTaskDone = false
+                
                 defer {
                     isTaskDone = true
                 }
@@ -149,6 +154,30 @@ struct LoginWithEmailView: View {
                     .signIn(email: email, password: password)
                 
                 goToStartView = true
+            } catch {
+                callbackMessage = error.localizedDescription
+            }
+        }
+    }
+    
+    func createUser() {
+        Task {
+            do {
+                if !isValidEmail(email) {
+                    callbackMessage = "Please enter a valid email address"
+                    return
+                }
+                
+                if password != passwordConfirm {
+                    callbackMessage = "Passwords do not match"
+                    return
+                }
+                
+                try await SupaClient
+                    .auth
+                    .signUp(email: email, password: password)
+                
+                callbackMessage = "Please check your inbox for a verification email and login to continue"
             } catch {
                 callbackMessage = error.localizedDescription
             }
@@ -223,7 +252,7 @@ struct LoginWithEmailView: View {
                     .font(.system(size: 28, weight: .bold))
                     .foregroundColor(.white)
                 
-                Text("Please note, this isn't supported yet, because it's in Test Mode")
+                Text("Please note, this isn't fully supported yet, any account created must be deleted via de webpanel in Supabase")
                     .font(.subheadline)
                     .foregroundColor(.white.opacity(0.8))
             }
