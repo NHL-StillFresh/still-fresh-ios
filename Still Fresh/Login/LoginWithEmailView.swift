@@ -10,6 +10,8 @@ import Foundation
 
 struct LoginWithEmailView: View {
     @State private var userHasAccount: Bool = false
+    @State private var userHasValidEmail: Bool = false
+    @State private var isTaskDone: Bool = false
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var passwordConfirm: String = ""
@@ -42,24 +44,32 @@ struct LoginWithEmailView: View {
                 
                 // Form content
                 VStack(alignment: .leading, spacing: 24) {
-                    if email == "" || !userHasAccount{
+                    if !userHasValidEmail {
                         fillInEmail()
                     }
-                    else if userHasAccount {
-                        fillInPassword()
-                    }
                     else {
-                        createAccount()
+                        if userHasAccount {
+                            fillInPassword()
+                        } else {
+                            createAccount()
+                        }
                     }
                     
                     // Continue button
                     Button(action: {
+                        callbackMessage = ""
                         if email.isEmpty {
                             callbackMessage = "Please provide an email address."
                             return
                         }
-                            
-                        if userHasAccount  {
+                        
+                        userHasValidEmail = isValidEmail(email)
+                        
+                        if !userHasValidEmail {
+                            callbackMessage = "Please provide a valid email address."
+                        }
+                        
+                        if userHasAccount {
                             authenticateUser()
                             return
                         } else {
@@ -98,6 +108,13 @@ struct LoginWithEmailView: View {
         }
     }
     
+    func isValidEmail(_ email: String) -> Bool {
+        let emailRegEx = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+
+        let emailPred = NSPredicate(format:"SELF MATCHES %@", emailRegEx)
+        return emailPred.evaluate(with: email)
+    }
+    
     struct UserModel: Decodable {
         let user_email: String
     }
@@ -105,6 +122,11 @@ struct LoginWithEmailView: View {
     func hasExistingAccount() {
         Task {
             do {
+                isTaskDone = false
+                defer {
+                    isTaskDone = true
+                }
+                
                 let users: [UserModel] = try await SupaClient
                     .from("users")
                     .select("user_email")
@@ -113,8 +135,7 @@ struct LoginWithEmailView: View {
                     .value
                 
                 userHasAccount = users.count > 0
-            }
-            catch {
+            } catch {
                 callbackMessage = error.localizedDescription
             }
         }
