@@ -8,16 +8,29 @@ import SwiftUI
 import Supabase
 import Foundation
 
+enum AppState {
+    case email
+    case login
+    case register
+    case startView
+}
+
 struct LoginWithEmailView: View {
-    @State private var userHasAccount: Bool = false
-    @State private var userHasValidEmail: Bool = false
+    
+    @State private var loginState: AppState = .email
     @State private var isTaskDone: Bool = false
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var passwordConfirm: String = ""
     @State private var callbackMessage: String = ""
-    @State private var goToStartView = false
     @Environment(\.dismiss) private var dismiss
+    
+    private var showStartView: Binding<Bool> {
+        Binding(
+            get: { loginState == .startView },
+            set: { if !$0 { loginState = .email } }
+        )
+    }
     
     var body: some View {
         ZStack {
@@ -44,15 +57,15 @@ struct LoginWithEmailView: View {
                 
                 // Form content
                 VStack(alignment: .leading, spacing: 24) {
-                    if userHasValidEmail && isTaskDone {
-                        if !userHasAccount {
-                            createAccount()
-                        } else {
+                    switch loginState {
+                        case .email:
+                            fillInEmail()
+                        case .login:
                             fillInPassword()
-                        }
-                    }
-                    else {
-                        fillInEmail()
+                        case .register:
+                            createAccount()
+                        case .startView:
+                            StartView()
                     }
                     
                     Text(callbackMessage)
@@ -61,30 +74,33 @@ struct LoginWithEmailView: View {
                     // Continue button
                     Button(action: {
                         callbackMessage = ""
-                        if email.isEmpty {
-                            callbackMessage = "Please provide an email address."
-                            return
-                        }
-                        
-                        userHasValidEmail = isValidEmail(email)
-                        
-                        if !userHasValidEmail {
-                            callbackMessage = "Please provide a valid email address."
+                        if loginState == .email {
+                            if email.isEmpty {
+                                callbackMessage = "Please provide an email address."
+                                loginState = .email
+                                return
+                            }
+                            
+                            if !isValidEmail(email) {
+                                callbackMessage = "Please provide a valid email address."
+                                loginState = .email
+                                return
+                            } else {
+                                loginState = .login
+                                return
+                            }
+                        } else if loginState == .login {
+                            if password.isEmpty {
+                                callbackMessage = "Please provide a password."
+                                loginState = .login
+                                return
+                            }
+                            callbackMessage = "Trying to log you in..."
+                            authenticateUser()
                             
                             return
                         }
                         
-                        if userHasAccount {
-                            callbackMessage = "Logging you in right now..."
-                            authenticateUser()
-                            return
-                        } else if !password.isEmpty{
-                            createUser()
-                        } else {
-                            hasExistingAccount()
-                        }
-                        
-                        return
                     }) {
                         HStack {
                             Spacer()
@@ -107,7 +123,7 @@ struct LoginWithEmailView: View {
             }
             .padding()
         }
-        .fullScreenCover(isPresented: $goToStartView) {
+        .fullScreenCover(isPresented: showStartView) {
             StartView()
         }
     }
@@ -119,43 +135,14 @@ struct LoginWithEmailView: View {
         return emailPred.evaluate(with: email)
     }
     
-    struct UserModel: Decodable {
-        let user_email: String
-    }
-    
-    func hasExistingAccount() {
-        Task {
-            do {
-                isTaskDone = false
-                
-                defer {
-                    isTaskDone = true
-                }
-                
-                let users: [UserModel] = try await SupaClient
-                    .from("users")
-                    .select("user_email")
-                    .eq("user_email", value: email)
-                    .execute()
-                    .value
-                
-                userHasAccount = users.count > 0
-            } catch {
-                callbackMessage = error.localizedDescription
-            }
-        }
-    }
-    
     func authenticateUser() {
         Task {
             do {
                 try await SupaClient
                     .auth
                     .signIn(email: email, password: password)
-                
-                goToStartView = true
             } catch {
-                callbackMessage = error.localizedDescription
+                callbackMessage = error.localizedDescription.debugDescription
             }
         }
     }
@@ -177,7 +164,8 @@ struct LoginWithEmailView: View {
                     .auth
                     .signUp(email: email, password: password)
                 
-                callbackMessage = "Please check your inbox for a verification email and login to continue"
+                callbackMessage = "Login to continue"
+                loginState = .login
             } catch {
                 callbackMessage = error.localizedDescription
             }
@@ -191,7 +179,7 @@ struct LoginWithEmailView: View {
                     .font(.system(size: 28, weight: .bold))
                     .foregroundColor(.white)
                 
-                Text("We'll check if you have an account with us")
+                Text("Enter your email address below to log in or create an account.")
                     .font(.subheadline)
                     .foregroundColor(.white.opacity(0.8))
             }
@@ -223,7 +211,7 @@ struct LoginWithEmailView: View {
                     .font(.system(size: 28, weight: .bold))
                     .foregroundColor(.white)
                 
-                Text("Welcome back, \(email)!")
+                Text("Enter your password, if you have an account already we'll log you in.")
                     .font(.subheadline)
                     .foregroundColor(.white.opacity(0.8))
             }
@@ -303,5 +291,5 @@ extension View {
 }
 
 #Preview {
-    LoginWithEmailView()
+    LoginView()
 }
