@@ -9,6 +9,7 @@ DerivedData/
 *.xcodeproj/project.xcworkspace/xcuserdata/
 *.xcodeproj/xcuserdata/
 *.xcodeproj/xcuserdata/*.xcuserdatad/
+*.xcodeproj/project.pbxproj
 
 # User-specific files
 *.swp
