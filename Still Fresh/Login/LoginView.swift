@@ -10,6 +10,7 @@ import AuthenticationServices
 
 struct LoginView : View {
     @State private var showingLoginSheet = false
+    @State private var showStartView = false
 
     var color = Color("LoginBackgroundColor")
     var buttonHeight:CGFloat = 50;
@@ -22,8 +23,15 @@ struct LoginView : View {
                 Text("they want toa stay fresh").colorInvert().font(.title).fontWeight(.semibold)
                 SignInWithAppleButton(.signUp) {
                     request in
+                    request.requestedScopes = [.fullName, .email]
                 } onCompletion: {
                     result in
+                    switch result {
+                    case .success(let authorization):
+                        handleSuccessfulLogin(with: authorization)
+                    case .failure(let error):
+                        handleLoginError(with: error)
+                    }
                 }.frame(height: buttonHeight)
                 Text("or").colorInvert()
                 Button(action: {
@@ -44,8 +52,28 @@ struct LoginView : View {
                 }
 
             }.padding()
-        }.background(color)
+        }.background(color).fullScreenCover(isPresented: $showStartView) {
+            StartView()
+        }
 
+    }
+    
+    private func handleSuccessfulLogin(with authorization: ASAuthorization) {
+        if let userCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
+            if userCredential.authorizedScopes.contains(.fullName) {
+                print(userCredential.fullName?.givenName ?? "No given name")
+            }
+                    
+            if userCredential.authorizedScopes.contains(.email) {
+                print(userCredential.email ?? "No email")
+            }
+            
+            showStartView = true
+        }
+    }
+        
+    private func handleLoginError(with error: Error) {
+        print("Could not authenticate: \\(error.localizedDescription)")
     }
 }
 
