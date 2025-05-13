@@ -23,7 +23,8 @@ struct Still_FreshApp: App {
     
     var body: some Scene {
         WindowGroup {
-            LoginView()
+            // LoginView()
+            StartView()
                 .preferredColorScheme(.light)
         }
     }
