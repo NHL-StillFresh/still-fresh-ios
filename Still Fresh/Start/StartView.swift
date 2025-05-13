@@ -8,13 +8,12 @@ import SwiftUI
 
 struct StartView : View {
     @State private var selectedTab = 0
-    @State private var showAddScreen = false
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 NavBar()
-                BottomNavBar(selectedTab: $selectedTab, showAddScreen: $showAddScreen)
+                BottomNavBar(selectedTab: $selectedTab)
             }
         }
     }

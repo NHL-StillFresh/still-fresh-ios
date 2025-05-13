@@ -2,7 +2,7 @@ import SwiftUI
 
 struct BottomNavBar: View {
     @Binding var selectedTab: Int
-    @Binding var showAddScreen: Bool
+    @State private var showAddSheet = false
     
     var body: some View {
         ZStack {
@@ -70,7 +70,7 @@ struct BottomNavBar: View {
             VStack {
                 Spacer()
                 Button(action: {
-                    showAddScreen.toggle()
+                    showAddSheet = true
                 }) {
                     Image(systemName: "plus")
                         .foregroundColor(.white)
@@ -80,8 +80,16 @@ struct BottomNavBar: View {
                         .clipShape(Circle())
                         .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
                 }
-                .sheet(isPresented: $showAddScreen) {
-                    AddView()
+                .sheet(isPresented: $showAddSheet) {
+                    if #available(iOS 16.0, *) {
+                        AddView()
+                            .presentationDetents([.height(320)])
+                            .presentationDragIndicator(.visible)
+                            .presentationCornerRadius(24)
+                    } else {
+                        // Fallback for iOS 15 and earlier
+                        AddView()
+                    }
                 }
                 .offset(y: 30)
                 Spacer().frame(height: 40)
@@ -92,7 +100,6 @@ struct BottomNavBar: View {
 
 #Preview {
     @Previewable @State var selectedTab = 0
-    @Previewable @State var showAddScreen = false
     
-    BottomNavBar(selectedTab: $selectedTab, showAddScreen: $showAddScreen)
+    BottomNavBar(selectedTab: $selectedTab)
 }
