@@ -43,6 +43,7 @@ struct LoginView : View {
                             idToken: idToken
                           )
                         )
+                          showStartView = true
                       } catch {
                         dump(error)
                       }
