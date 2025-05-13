@@ -45,7 +45,7 @@ struct TipsCarouselView: View {
                             .scaleEffect(0.8)
                     } else {
                         Image(systemName: "arrow.clockwise")
-                            .foregroundColor(.blue)
+                            .foregroundColor(Color(UIColor.systemTeal))
                             .padding(.bottom, 8)
 
                     }
