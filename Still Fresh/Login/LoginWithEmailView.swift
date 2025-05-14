@@ -98,6 +98,7 @@ struct LoginWithEmailView: View {
                             callbackMessage = "Trying to log you in..."
                             authenticateUser()
                             
+                            loginState = .startView
                             return
                         }
                         
