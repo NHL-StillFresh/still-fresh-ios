@@ -2,7 +2,7 @@ import SwiftUI
 
 struct NavBar: View {
     @State private var greeting: String = ""
-    @State private var username: String = "Bram" // Set to Bram as shown in the image
+    @State private var username: String = "App Tester" // Changed to match SettingsView
     @State private var showAccountScreen = false
     @State private var timeIcon: String = "sun.max"
     
@@ -34,14 +34,13 @@ struct NavBar: View {
             Button(action: {
                 showAccountScreen = true
             }) {
-                Image(systemName: "person")
+                Image(systemName: "gearshape")
                     .font(.system(size: 22, weight: .regular))
                     .foregroundColor(.black)
                     .symbolRenderingMode(.palette)
             }
             .sheet(isPresented: $showAccountScreen) {
-                Text("Account Screen") // Placeholder view
-                    .presentationDetents([.medium])
+                SettingsView()
             }
         }
         .padding()

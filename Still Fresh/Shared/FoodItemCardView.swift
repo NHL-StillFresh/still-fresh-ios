@@ -54,7 +54,7 @@ struct FoodItemCardView: View {
                             .padding(24)
                             .foregroundColor(bgColor.opacity(1.5))
                     }
-                    .frame(height: 140)
+                    .frame(height: 110)
                     .frame(maxWidth: .infinity)
                     
                     // Store tag
@@ -124,12 +124,12 @@ struct FoodItemCardView: View {
                     }
                     .padding(.top, 6)
                 }
-                .padding(.top, 12)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
+                .padding(.top, 8)
+                .padding(.horizontal, 14)
+                .padding(.bottom, 12)
             }
         }
-        .frame(width: UIScreen.main.bounds.width * 0.75, height: 280)
+        .frame(width: UIScreen.main.bounds.width * 0.6, height: 230)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
     }
