@@ -15,29 +15,9 @@ struct NotificationsView: View {
                 Color(UIColor.systemBackground).edgesIgnoringSafeArea(.all)
                 
                 VStack(alignment: .leading, spacing: 0) {
-                    // Page Title
-                    HStack {
-                        Text("Alerts")
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(.black)
-                        
-                        Spacer()
-                        
-                        Button(action: {
-                            // Mark all as read action
-                        }) {
-                            Text("Mark All Read")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(tealColor)
-                        }
-                    }
-                    .padding(.horizontal)
-                    .padding(.top)
-                    .padding(.bottom, 8)
-                    
                     // Filter Selector
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
+                        HStack(spacing: 12) {
                             ForEach(NotificationFilter.allCases, id: \.self) { filter in
                                 FilterButton(
                                     title: filter.title,
@@ -48,13 +28,13 @@ struct NotificationsView: View {
                                 )
                             }
                         }
-                        .padding(.horizontal)
-                        .padding(.bottom, 12)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 20)
                     }
                     
                     // Alerts List
                     ScrollView {
-                        VStack(spacing: 16) {
+                        VStack(spacing: 24) {
                             // Expiry Alerts
                             if selectedFilter == .all || selectedFilter == .expiry {
                                 if !expiryAlerts.isEmpty {
@@ -111,17 +91,19 @@ struct NotificationsView: View {
                                 VStack(spacing: 16) {
                                     Image(systemName: "bell.slash")
                                         .font(.system(size: 48))
-                                        .foregroundColor(Color(UIColor.systemGray3))
+                                        .foregroundColor(lightTealColor.opacity(0.6))
                                         .padding(.top, 60)
                                     
                                     Text("No \(selectedFilter.title) alerts")
                                         .font(.system(size: 18, weight: .medium))
-                                        .foregroundColor(Color(UIColor.systemGray))
+                                        .foregroundColor(tealColor)
                                 }
                                 .frame(maxWidth: .infinity)
+                                .padding(.top, 40)
                             }
                         }
-                        .padding(.horizontal)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 20)
                     }
                 }
             }
@@ -187,12 +169,12 @@ struct FilterButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 14, weight: isSelected ? .semibold : .medium))
+                .font(.system(size: 15, weight: isSelected ? .semibold : .medium))
                 .foregroundColor(isSelected ? .white : Color(red: 0.04, green: 0.29, blue: 0.29))
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 10)
                 .background(
-                    RoundedRectangle(cornerRadius: 20)
+                    RoundedRectangle(cornerRadius: 16)
                         .fill(isSelected ? Color(red: 0.04, green: 0.29, blue: 0.29) : Color(UIColor.systemGray6))
                 )
         }
@@ -207,13 +189,14 @@ struct AlertSectionView: View {
     let iconColor: Color
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             Text(title)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.secondary)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(Color(red: 0.04, green: 0.29, blue: 0.29))
                 .padding(.leading, 4)
+                .padding(.top, 4)
             
-            VStack(spacing: 12) {
+            VStack(spacing: 16) {
                 ForEach(alerts, id: \.id) { alert in
                     NotificationCell(
                         icon: icon,
@@ -225,8 +208,9 @@ struct AlertSectionView: View {
                     )
                 }
             }
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(.vertical, 12)
+            .background(Color(UIColor.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
             .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
         }
     }
@@ -242,31 +226,32 @@ struct NotificationCell: View {
     let isRead: Bool
     
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: 16) {
             // Icon
             Image(systemName: icon)
                 .foregroundColor(.white)
                 .font(.system(size: 14))
-                .frame(width: 28, height: 28)
+                .frame(width: 32, height: 32)
                 .background(iconColor)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 // Title
                 Text(title)
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(isRead ? .secondary : .primary)
                 
                 // Message
                 Text(message)
                     .font(.system(size: 14))
                     .foregroundColor(.secondary)
+                    .lineLimit(2)
                 
                 // Time
                 Text(timeAgo)
                     .font(.system(size: 12))
                     .foregroundColor(.gray)
-                    .padding(.top, 2)
+                    .padding(.top, 4)
             }
             
             Spacer()
@@ -274,12 +259,13 @@ struct NotificationCell: View {
             // Unread indicator
             if !isRead {
                 Circle()
-                    .fill(Color.blue)
-                    .frame(width: 8, height: 8)
+                    .fill(Color(red: 122/255, green: 190/255, blue: 203/255))
+                    .frame(width: 10, height: 10)
+                    .padding(.top, 4)
             }
         }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 8)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
     }
 }
 

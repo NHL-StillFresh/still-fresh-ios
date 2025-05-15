@@ -1,8 +1,8 @@
 import SwiftUI
 
-struct NavBar: View {
+struct HomeNavBar: View {
     @State private var greeting: String = ""
-    @State private var username: String = "App Tester" // Changed to match SettingsView
+    @State private var username: String = "App Tester"
     @State private var showAccountScreen = false
     @State private var timeIcon: String = "sun.max"
     
@@ -66,5 +66,5 @@ struct NavBar: View {
 }
 
 #Preview {
-    NavBar()
-}
+    HomeNavBar()
+} 
