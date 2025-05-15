@@ -1,7 +1,7 @@
 import SwiftUI
 
-struct ExpiringItemsCarouselView: View {
-    let items: [FoodItem]
+struct LastMinuteRecipesCarouselView: View {
+    let recipes: [Recipe]
     var onSeeAllTapped: () -> Void
     
     @State private var currentPage = 0
@@ -13,7 +13,7 @@ struct ExpiringItemsCarouselView: View {
         VStack(alignment: .leading, spacing: 16) {
             // Header with "See All" button
             HStack {
-                Text("Use it or lose it")
+                Text("Last minute recipes")
                     .font(.system(size: 21))
                     .padding(.bottom, 8)
                     .fontWeight(.bold)
@@ -29,20 +29,20 @@ struct ExpiringItemsCarouselView: View {
             }
             .padding(.horizontal)
             
-            if items.isEmpty {
+            if recipes.isEmpty {
                 // Empty state
                 VStack {
-                    Text("No expiring items")
+                    Text("No recipes available")
                         .font(.system(size: 16))
                         .foregroundColor(.secondary)
-                    Text("Add items to track their expiry dates")
+                    Text("Check back later for quick recipe ideas")
                         .font(.system(size: 14))
                         .foregroundColor(.secondary)
                 }
-                .frame(height: 250) // Match reduced card height
+                .frame(height: 250)
                 .frame(maxWidth: .infinity)
             } else {
-                // Scrollable carousel of food items
+                // Scrollable carousel of recipes
                 GeometryReader { outerGeometry in
                     let cardWidth = UIScreen.main.bounds.width * 0.6
                     let cardSpacing: CGFloat = 16
@@ -51,8 +51,8 @@ struct ExpiringItemsCarouselView: View {
                     ZStack(alignment: .leading) {
                         // Main horizontal scroll content
                         HStack(spacing: cardSpacing) {
-                            ForEach(0..<items.count, id: \.self) { index in
-                                FoodItemCardView(item: items[index])
+                            ForEach(0..<recipes.count, id: \.self) { index in
+                                RecipeCardView(recipe: recipes[index])
                             }
                         }
                         .offset(x: leftEdgePadding + scrollOffset + dragOffset)
@@ -77,7 +77,7 @@ struct ExpiringItemsCarouselView: View {
                                     
                                     if abs(velocity) > velocityThreshold {
                                         // Swipe with velocity - go to next or previous page based on velocity direction
-                                        if velocity < 0 && currentPage < items.count - 1 {
+                                        if velocity < 0 && currentPage < recipes.count - 1 {
                                             currentPage += 1
                                         } else if velocity > 0 && currentPage > 0 {
                                             currentPage -= 1
@@ -86,7 +86,7 @@ struct ExpiringItemsCarouselView: View {
                                         // Swipe without much velocity - calculate nearest page
                                         let offsetInCardWidths = -scrollOffset / cardTotalWidth
                                         let nearestPage = Int(round(offsetInCardWidths))
-                                        currentPage = max(0, min(items.count - 1, nearestPage))
+                                        currentPage = max(0, min(recipes.count - 1, nearestPage))
                                     }
                                     
                                     // Calculate final position for the selected card to be fully visible
@@ -100,15 +100,15 @@ struct ExpiringItemsCarouselView: View {
                         )
                     }
                 }
-                .frame(height: 250) // Reduced to match new card height
+                .frame(height: 250)
             }
         }
     }
 }
 
 #Preview {
-    ExpiringItemsCarouselView(
-        items: FoodItem.sampleItems,
+    LastMinuteRecipesCarouselView(
+        recipes: Recipe.sampleRecipes,
         onSeeAllTapped: {}
     )
 } 

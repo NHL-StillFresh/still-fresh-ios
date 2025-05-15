@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
     @StateObject private var tipsViewModel = FoodTipsViewModel(apiKey: APIKeys.openRouterAPIKey)
     @StateObject private var expiringItemsViewModel = ExpiringItemsViewModel()
+    @StateObject private var recipesViewModel = RecipesViewModel()
     
     var body: some View {
         ScrollView {
@@ -13,8 +14,6 @@ struct HomeView: View {
                 })
                 .padding(.top)
                 
-                Spacer()
-                
                 // Expiring items carousel
                 ExpiringItemsCarouselView(
                     items: expiringItemsViewModel.expiringItems,
@@ -22,6 +21,16 @@ struct HomeView: View {
                         expiringItemsViewModel.seeAllItems()
                     }
                 )
+                
+                // Last minute recipes carousel
+                LastMinuteRecipesCarouselView(
+                    recipes: recipesViewModel.lastMinuteRecipes,
+                    onSeeAllTapped: {
+                        recipesViewModel.seeAllRecipes()
+                    }
+                )
+                
+                Spacer(minLength: 30)
             }
         }
         .onAppear {
