@@ -21,7 +21,7 @@ struct BottomNavBar: View {
                         Text("Basket")
                     }.tag(1)
                 
-                EmptyView()
+                Color.clear
                     .tabItem {
                         Image(systemName: "")
                         Text("")
@@ -41,6 +41,15 @@ struct BottomNavBar: View {
                     }.tag(4)
             }
             .accentColor(Color(UIColor.systemTeal))
+            .onChange(of: selectedTab) { newTab in
+                // If the middle tab is selected, revert to previous tab and show the add sheet
+                if newTab == 2 {
+                    // Show add sheet when middle tab is tapped
+                    showAddSheet = true
+                    // Revert to previous tab or default to first tab
+                    selectedTab = max(0, selectedTab == 2 ? 0 : selectedTab)
+                }
+            }
             .onAppear {
                 // Set the background color and appearance of tab bar
                 let appearance = UITabBarAppearance()
@@ -80,6 +89,8 @@ struct BottomNavBar: View {
                         .clipShape(Circle())
                         .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
                 }
+                .padding(20) // Add padding to increase tap area
+                .contentShape(Circle().size(CGSize(width: 112, height: 112))) // Increase hit area
                 .sheet(isPresented: $showAddSheet) {
                     if #available(iOS 16.0, *) {
                         AddView()
@@ -91,7 +102,7 @@ struct BottomNavBar: View {
                         AddView()
                     }
                 }
-                .offset(y: 30)
+                .offset(y: 50)
                 Spacer().frame(height: 40)
             }
         }

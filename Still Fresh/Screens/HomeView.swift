@@ -38,16 +38,16 @@ struct HomeView: View {
                 tipsViewModel.generateTips()
             }
         }
-        .alert(isPresented: Binding(
-            get: { tipsViewModel.error != nil },
-            set: { if !$0 { tipsViewModel.error = nil } }
-        )) {
-            Alert(
-                title: Text("Error"),
-                message: Text(tipsViewModel.error ?? "Unknown error"),
-                dismissButton: .default(Text("OK"))
-            )
-        }
+//        .alert(isPresented: Binding(
+//            get: { tipsViewModel.error != nil },
+//            set: { if !$0 { tipsViewModel.error = nil } }
+//        )) {
+//            Alert(
+//                title: Text("Error"),
+//                message: Text(tipsViewModel.error ?? "Unknown error"),
+//                dismissButton: .default(Text("OK"))
+//            )
+//        }
     }
 }
 
