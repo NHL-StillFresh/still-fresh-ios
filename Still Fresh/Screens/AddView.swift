@@ -123,21 +123,13 @@ struct AddView: View {
                         isProcessing = false
                         self.productLines = lines
                         
-                        // Collect debugging info
                         var debugInfo = "Image size: \(image.size.width)x\(image.size.height)\n"
                         debugInfo += "Detected \(lines.count) products\n"
                         
-                        // Show raw text lines for debugging
                         if lines.isEmpty {
                             scanStatus = .noProductsFound
                             
-                            // Try to get and add the JUMBO COLA manually for testing
-                            let knownProducts = ["JUMBO COLA FLES 500M 0,40", "STATIEGELD 0,15"]
-                            if debugText.isEmpty {
-                                self.productLines = knownProducts
-                                debugInfo += "Added test products for debugging\n"
-                                scanStatus = .success
-                            }
+                            
                         } else {
                             scanStatus = .success
                         }
@@ -178,7 +170,6 @@ struct AddView: View {
             debugText = ""
             showCamera = true
         default:
-            // Immediately dismiss without delay
             dismiss()
         }
     }
@@ -191,11 +182,10 @@ struct OptionButton: View {
     
     var body: some View {
         Button(action: {
-            // Set selection immediately without animation delay
+
             selectedOption = option
         }) {
             HStack(spacing: 16) {
-                // Slightly smaller icon for more compact layout
                 ZStack {
                     Circle()
                         .fill(Color(red: 0.04, green: 0.29, blue: 0.29).opacity(0.12))
@@ -233,11 +223,10 @@ struct OptionButton: View {
             )
             .contentShape(Rectangle())
         }
-        .buttonStyle(PressButtonStyle()) // Using a simpler immediate feedback style
+        .buttonStyle(PressButtonStyle())
     }
 }
 
-// Simple feedback without delays
 struct PressButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -246,18 +235,23 @@ struct PressButtonStyle: ButtonStyle {
     }
 }
 
-// Add a new view to display scan results
 struct ScanResultsView: View {
-    let productLines: [String]
+    @State var productLines: [String]
     let debugText: String
     let scanStatus: AddView.ScanStatus
     let onDone: () -> Void
+    @State private var showProductsView: Bool = false
+    @State private var showAlert = false
+    @State private var itemToRemove: String? = nil
+
     
     var body: some View {
         VStack {
             Text("Producten op bon:")
                 .font(.title)
                 .padding()
+            
+            Text("Controleer of er geen fouten zijn in de scan")
             
             if productLines.isEmpty {
                 Text(scanStatus.message)
@@ -282,14 +276,29 @@ struct ScanResultsView: View {
                 }
             } else {
                 List(productLines, id: \.self) { line in
-                    Text(line)
+                    
+                    Button(line) {
+                        itemToRemove = line
+                        showAlert = true
+                    }
+                }.alert(isPresented: $showAlert) {
+                    Alert(
+                        title: Text("Confirm Removal"),
+                        message: Text("Are you sure you want to remove \(itemToRemove ?? "")?"),
+                        primaryButton: .destructive(Text("Remove")) {
+                            if let item = itemToRemove, let index = productLines.firstIndex(of: item) {
+                                productLines.remove(at: index)
+                            }
+                        },
+                        secondaryButton: .cancel()
+                    )
                 }
             }
             
             Spacer()
             
             Button("Gereed") {
-                onDone()
+                showProductsView = true
             }
             .padding()
             .frame(minWidth: 120)
@@ -297,6 +306,9 @@ struct ScanResultsView: View {
             .foregroundColor(.white)
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .padding(.bottom)
+            .sheet(isPresented: $showProductsView) {
+                CheckProductsView(productLines: productLines)
+            }
         }
     }
 }

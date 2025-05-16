@@ -20,7 +20,7 @@ struct LoginView : View {
             VStack() {
                 Image("LoginImage").scaledToFill()
                 Text("Your groceries called-").colorInvert().font(.title).fontWeight(.semibold)
-                Text("they want toa stay fresh").colorInvert().font(.title).fontWeight(.semibold)
+                Text("they want to stay fresh").colorInvert().font(.title).fontWeight(.semibold)
                 SignInWithAppleButton(.signUp) {
                     request in
                     request.requestedScopes = [.fullName, .email]
