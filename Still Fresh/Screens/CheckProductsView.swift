@@ -36,11 +36,23 @@ struct CheckProductsView: View {
                 
                 if !unknownProducts.isEmpty {
                     List(unknownProducts, id: \.self) {
-                        pruduct in Text(pruduct)
+                        pruduct in Button(pruduct) {
+                            
+                        }
                     }
                 } else {
                     Text("Good news! We know al products on your receipt!").padding()
                 }
+                
+                Button("Gereed") {
+                    
+                }
+                .padding()
+                .frame(minWidth: 120)
+                .background(Color(red: 0.04, green: 0.29, blue: 0.29))
+                .foregroundColor(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .padding(.bottom)
             }
         }.onAppear {
             checkProducts()
