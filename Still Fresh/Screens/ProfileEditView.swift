@@ -122,8 +122,8 @@ struct ProfileEditView: View {
 }
 
 #Preview {
-    @State var username = "App Tester"
-    @State var email = "apptester@stillfresh.nl"
+    @Previewable @State var username = "App Tester"
+    @Previewable @State var email = "apptester@stillfresh.nl"
     
     return ProfileEditView(username: $username, email: $email)
 } 
