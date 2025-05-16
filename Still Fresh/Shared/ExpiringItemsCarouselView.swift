@@ -1,81 +1,58 @@
 import SwiftUI
 
-// Define a preference key to track card positions
-struct CardPreferenceKey: PreferenceKey {
-    static var defaultValue: [Int: CGRect] = [:]
-    
-    static func reduce(value: inout [Int: CGRect], nextValue: () -> [Int: CGRect]) {
-        value.merge(nextValue()) { current, _ in current }
-    }
-}
-
-struct TipsCarouselView: View {
-    let tips: [FoodSavingTip]
-    let onRefresh: () -> Void
+struct ExpiringItemsCarouselView: View {
+    let items: [FoodItem]
+    var onSeeAllTapped: () -> Void
     
     @State private var currentPage = 0
-    @State private var cardRects: [Int: CGRect] = [:]
-    @State private var isRefreshing = false
     @State private var dragOffset: CGFloat = 0
     @State private var scrollOffset: CGFloat = 0
     @State private var isUserScrolling = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            // Header with "See All" button
             HStack {
-                Text("Fresh Hacks")
+                Text("Use it or lose it")
                     .font(.system(size: 21))
                     .padding(.bottom, 8)
                     .fontWeight(.bold)
                 
                 Spacer()
                 
-                Button(action: {
-                    isRefreshing = true
-                    onRefresh()
-                    
-                    // Auto-reset refreshing status after 3 seconds
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                        isRefreshing = false
-                    }
-                }) {
-                    if isRefreshing {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .blue))
-                            .scaleEffect(0.8)
-                    } else {
-                        Image(systemName: "arrow.clockwise")
-                            .foregroundColor(Color(UIColor.systemTeal))
-                            .padding(.bottom, 8)
-
-                    }
+                Button(action: onSeeAllTapped) {
+                    Text("See all")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(Color(red: 122/255, green: 190/255, blue: 203/255))
+                        .padding(.bottom, 8)
                 }
-                .disabled(isRefreshing)
             }
             .padding(.horizontal)
             
-            if tips.isEmpty {
+            if items.isEmpty {
+                // Empty state
                 VStack {
-                    ProgressView()
-                    Text("Loading today's tips...")
-                        .font(.caption)
+                    Text("No expiring items")
+                        .font(.system(size: 16))
+                        .foregroundColor(.secondary)
+                    Text("Add items to track their expiry dates")
+                        .font(.system(size: 14))
                         .foregroundColor(.secondary)
                 }
-                .frame(height: 140)
+                .frame(height: 250) // Match reduced card height
                 .frame(maxWidth: .infinity)
             } else {
+                // Scrollable carousel of food items
                 GeometryReader { outerGeometry in
-                    let cardWidth = UIScreen.main.bounds.width * 0.75
+                    let cardWidth = UIScreen.main.bounds.width * 0.6
                     let cardSpacing: CGFloat = 16
-                    // Start from the left edge with a small padding
                     let leftEdgePadding: CGFloat = 16
                     
                     ZStack(alignment: .leading) {
                         // Main horizontal scroll content
                         HStack(spacing: cardSpacing) {
-                            ForEach(0..<tips.count, id: \.self) { index in
-                                TipCardView(tip: tips[index])
-                                    .id(index)
+                            ForEach(0..<items.count, id: \.self) { index in
+                                FoodItemCardView(item: items[index])
                             }
                         }
                         .offset(x: leftEdgePadding + scrollOffset + dragOffset)
@@ -100,7 +77,7 @@ struct TipsCarouselView: View {
                                     
                                     if abs(velocity) > velocityThreshold {
                                         // Swipe with velocity - go to next or previous page based on velocity direction
-                                        if velocity < 0 && currentPage < tips.count - 1 {
+                                        if velocity < 0 && currentPage < items.count - 1 {
                                             currentPage += 1
                                         } else if velocity > 0 && currentPage > 0 {
                                             currentPage -= 1
@@ -109,7 +86,7 @@ struct TipsCarouselView: View {
                                         // Swipe without much velocity - calculate nearest page
                                         let offsetInCardWidths = -scrollOffset / cardTotalWidth
                                         let nearestPage = Int(round(offsetInCardWidths))
-                                        currentPage = max(0, min(tips.count - 1, nearestPage))
+                                        currentPage = max(0, min(items.count - 1, nearestPage))
                                     }
                                     
                                     // Calculate final position for the selected card to be fully visible
@@ -122,22 +99,16 @@ struct TipsCarouselView: View {
                                 }
                         )
                     }
-                    .frame(height: 140)
                 }
-                .frame(height: 140)
-
+                .frame(height: 250) // Reduced to match new card height
             }
         }
     }
 }
 
 #Preview {
-    TipsCarouselView(
-        tips: [
-            FoodSavingTip(content: "Store cheese in wax paper, not plastic."),
-            FoodSavingTip(content: "Keep peeled onions in an airtight container."),
-            FoodSavingTip(content: "Store herbs in a jar with water.")
-        ],
-        onRefresh: {}
+    ExpiringItemsCarouselView(
+        items: FoodItem.sampleItems,
+        onSeeAllTapped: {}
     )
 } 

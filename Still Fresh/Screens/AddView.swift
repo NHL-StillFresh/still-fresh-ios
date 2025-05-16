@@ -198,12 +198,12 @@ struct OptionButton: View {
                 // Slightly smaller icon for more compact layout
                 ZStack {
                     Circle()
-                        .fill(Color(red: 0.04, green: 0.29, blue: 0.29).opacity(0.12))
+                        .fill(Color(red: 0.04, green: 0.29, blue: 0.29).opacity(0.08))
                         .frame(width: 50, height: 50)
                     
                     Image(systemName: option.iconName)
                         .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(Color(red: 0.04, green: 0.29, blue: 0.29))
+                        .foregroundColor(Color(UIColor.systemTeal))
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {

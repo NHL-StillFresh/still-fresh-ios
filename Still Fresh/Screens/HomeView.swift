@@ -1,43 +1,41 @@
 import SwiftUI
 
 struct HomeView: View {
-    @StateObject private var viewModel = FoodTipsViewModel(apiKey: APIKeys.openRouterAPIKey)
+    @StateObject private var tipsViewModel = FoodTipsViewModel(apiKey: APIKeys.openRouterAPIKey)
+    @StateObject private var expiringItemsViewModel = ExpiringItemsViewModel()
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 // Tips carousel
-                TipsCarouselView(tips: viewModel.dailyTips.tips, onRefresh: {
-                    viewModel.forceRefreshTips()
+                TipsCarouselView(tips: tipsViewModel.dailyTips.tips, onRefresh: {
+                    tipsViewModel.forceRefreshTips()
                 })
                 .padding(.top)
                 
-                Divider()
-                    .padding(.horizontal)
+                Spacer()
                 
-                // Rest of the home view content
-                VStack {
-                    Image(systemName: "globe")
-                        .imageScale(.large)
-                        .foregroundStyle(.tint)
-                    Text("Hello, Home!")
-                }
-                .padding()
-                .frame(maxWidth: .infinity)
+                // Expiring items carousel
+                ExpiringItemsCarouselView(
+                    items: expiringItemsViewModel.expiringItems,
+                    onSeeAllTapped: {
+                        expiringItemsViewModel.seeAllItems()
+                    }
+                )
             }
         }
         .onAppear {
-            if viewModel.dailyTips.tips.isEmpty {
-                viewModel.generateTips()
+            if tipsViewModel.dailyTips.tips.isEmpty {
+                tipsViewModel.generateTips()
             }
         }
         .alert(isPresented: Binding(
-            get: { viewModel.error != nil },
-            set: { if !$0 { viewModel.error = nil } }
+            get: { tipsViewModel.error != nil },
+            set: { if !$0 { tipsViewModel.error = nil } }
         )) {
             Alert(
                 title: Text("Error"),
-                message: Text(viewModel.error ?? "Unknown error"),
+                message: Text(tipsViewModel.error ?? "Unknown error"),
                 dismissButton: .default(Text("OK"))
             )
         }
