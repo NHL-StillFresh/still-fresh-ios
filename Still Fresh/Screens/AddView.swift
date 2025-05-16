@@ -107,13 +107,16 @@ struct AddView: View {
                 appearAnimation = true
             }
         }
-        .onChange(of: selectedOption) { newValue in
+        .onChange(of: selectedOption) { oldValue, newValue in
             if newValue != nil {
                 // Immediately handle selection without delay
                 handleOptionSelection(newValue!)
             }
         }
-        .sheet(isPresented: $showCamera) {
+        .sheet(isPresented: $showCamera, onDismiss: {
+            // Reset selectedOption when the camera is dismissed
+            selectedOption = nil
+        }) {
             ImagePicker(sourceType: .camera) { image in
                 isProcessing = true
                 scanStatus = .processing

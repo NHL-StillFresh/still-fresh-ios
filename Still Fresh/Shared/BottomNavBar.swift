@@ -41,7 +41,7 @@ struct BottomNavBar: View {
                     }.tag(4)
             }
             .accentColor(Color(UIColor.systemTeal))
-            .onChange(of: selectedTab) { newTab in
+            .onChange(of: selectedTab) { oldTab, newTab in
                 // If the middle tab is selected, revert to previous tab and show the add sheet
                 if newTab == 2 {
                     // Show add sheet when middle tab is tapped
@@ -95,8 +95,10 @@ struct BottomNavBar: View {
                     if #available(iOS 16.0, *) {
                         AddView()
                             .presentationDetents([.height(320)])
+                            .interactiveDismissDisabled(false)
                             .presentationDragIndicator(.visible)
                             .presentationCornerRadius(24)
+                            .presentationCompactAdaptation(.none)
                     } else {
                         // Fallback for iOS 15 and earlier
                         AddView()
