@@ -25,6 +25,8 @@ struct LoginWithEmailView: View {
     @State private var callbackMessage: String = ""
     @Environment(\.dismiss) private var dismiss
     
+    var onLoginSuccess: ((String) -> Void)?
+    
     private var showStartView: Binding<Bool> {
         Binding(
             get: { loginState == .startView },
@@ -65,7 +67,7 @@ struct LoginWithEmailView: View {
                         case .register:
                             createAccount()
                         case .startView:
-                            StartView()
+                            EmptyView()
                     }
                     
                     Text(callbackMessage)
@@ -97,8 +99,6 @@ struct LoginWithEmailView: View {
                             }
                             callbackMessage = "Trying to log you in..."
                             authenticateUser()
-                            
-                            loginState = .startView
                             return
                         }
                         
@@ -124,9 +124,6 @@ struct LoginWithEmailView: View {
             }
             .padding()
         }
-        .fullScreenCover(isPresented: showStartView) {
-            StartView()
-        }
     }
     
     func isValidEmail(_ email: String) -> Bool {
@@ -142,8 +139,16 @@ struct LoginWithEmailView: View {
                 try await SupaClient
                     .auth
                     .signIn(email: email, password: password)
+                
+                DispatchQueue.main.async {
+                    // Call the completion handler with email and dismiss
+                    onLoginSuccess?(email)
+                    dismiss()
+                }
             } catch {
-                callbackMessage = error.localizedDescription.debugDescription
+                DispatchQueue.main.async {
+                    callbackMessage = error.localizedDescription.debugDescription
+                }
             }
         }
     }

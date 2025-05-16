@@ -113,6 +113,7 @@ struct AddView: View {
                 handleOptionSelection(newValue!)
             }
         }
+
         .sheet(isPresented: $showCamera, onDismiss: {
             // Reset selectedOption when the camera is dismissed
             selectedOption = nil
