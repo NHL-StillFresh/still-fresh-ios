@@ -27,7 +27,7 @@ struct CheckProductsView: View {
                 if !knownProducts.isEmpty {
                     List(knownProducts, id: \.self) { product in Text(product)
                     }
-                } else {
+                } else if (!unknownProducts.isEmpty) {
                     Text("Unfortunately we don't know any of these products. Check them below").padding()
                 }
                 
@@ -41,11 +41,11 @@ struct CheckProductsView: View {
                             
                         }
                     }
-                } else {
+                } else if (!knownProducts.isEmpty) {
                     Text("Good news! We know al products on your receipt!").padding()
                 }
                 
-                Button("Gereed") {
+                Button("Next") {
                     
                 }
                 .padding()

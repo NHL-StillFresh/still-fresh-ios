@@ -132,8 +132,6 @@ struct AddView: View {
                         
                         if lines.isEmpty {
                             scanStatus = .noProductsFound
-                            
-                            
                         } else {
                             scanStatus = .success
                         }
@@ -251,11 +249,11 @@ struct ScanResultsView: View {
     
     var body: some View {
         VStack {
-            Text("Producten op bon:")
+            Text("Products on receipt:")
                 .font(.title)
                 .padding()
             
-            Text("Controleer of er geen fouten zijn in de scan")
+            Text("Verify that the scan contains no errors")
             
             if productLines.isEmpty {
                 Text(scanStatus.message)
@@ -301,7 +299,7 @@ struct ScanResultsView: View {
             
             Spacer()
             
-            Button("Gereed") {
+            Button("Next") {
                 showProductsView = true
             }
             .padding()
