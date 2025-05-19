@@ -52,9 +52,12 @@ struct HomeNavBar: View {
     private func updateGreeting() {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
-            case 0..<12:
-                greeting = "Good Morning"
-                timeIcon = "sunrise"
+            case 0..<5:
+            greeting = "Good Night"
+            timeIcon = "moon"
+            case 5..<12:
+            greeting = "Good Morning"
+            timeIcon = "sunrise"
             case 12..<17:
                 greeting = "Good Afternoon"
                 timeIcon = "sun.max"
