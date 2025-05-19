@@ -37,7 +37,7 @@ struct CheckProductsView: View {
                 
                 if !unknownProducts.isEmpty {
                     List(unknownProducts, id: \.self) {
-                        pruduct in Button(pruduct) {
+                        product in Button(product) {
                             
                         }
                     }
