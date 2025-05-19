@@ -52,30 +52,24 @@ struct CheckProductsView: View {
         Task {
             showLoading = true
             
-            do {
-                for productName in productLines {
-                    let products: [ProductModel] = try await SupaClient
-                            .from("product_receipt_names")
-                            .select()
-                            .eq("product_receipt_name", value: productName)
-                            .limit(1)
-                            .execute()
-                            .value
+            for productName in productLines {
+                do {
+                    try await SupaClient
+                        .from("product_receipt_names")
+                        .select()
+                        .eq("product_receipt_name", value: productName)
+                        .limit(1)
+                        .single()
+                        .execute()
+                        .value
                     
-                    
-                    if (products.isEmpty) {
-                        unknownProducts.append(productName)
-                    } else {
-                        knownProducts.append(productName)
-                    }
-
+                    knownProducts.append(productName)
+                } catch {
+                    unknownProducts.append(productName)
                 }
-                
-                showLoading = false
-                
-            } catch {
-                showLoading = false
             }
+            
+            showLoading = false
             
         }
     }
