@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Foundation
 
 struct CheckProductsView: View {
     @State var productLines: [String]
@@ -53,7 +54,7 @@ struct CheckProductsView: View {
             
             do {
                 for productName in productLines {
-                    let products: [Product] = try await SupaClient
+                    let products: [ProductModel] = try await SupaClient
                             .from("products")
                             .select()
                             .eq("product_name", value: productName)
