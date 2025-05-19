@@ -55,9 +55,9 @@ struct CheckProductsView: View {
             do {
                 for productName in productLines {
                     let products: [ProductModel] = try await SupaClient
-                            .from("products")
+                            .from("product_receipt_names")
                             .select()
-                            .eq("product_name", value: productName)
+                            .eq("product_receipt_name", value: productName)
                             .limit(1)
                             .execute()
                             .value

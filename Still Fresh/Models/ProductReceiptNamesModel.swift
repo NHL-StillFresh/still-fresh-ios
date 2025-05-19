@@ -7,8 +7,8 @@
 
 struct ProductReceiptNameModel: Decodable {
     let id: String
-    let createdAt: String
-    let updatedAt: String
-    let productId: String
-    let productReceiptName: String?
+    let created_at: String
+    let updated_at: String
+    let product_id: String
+    let product_receipt_name: String?
 }
