@@ -27,11 +27,27 @@ struct LoginView : View {
                     request.requestedScopes = [.fullName, .email]
                 } onCompletion: {
                     result in
-                    switch result {
-                    case .success(let authorization):
-                        handleSuccessfulLogin(with: authorization)
-                    case .failure(let error):
-                        handleLoginError(with: error)
+                    Task {
+                      do {
+                        guard let credential = try result.get().credential as? ASAuthorizationAppleIDCredential
+                        else {
+                          return
+                        }
+                        guard let idToken = credential.identityToken
+                          .flatMap({ String(data: $0, encoding: .utf8) })
+                        else {
+                          return
+                        }
+                          try await SupaClient.auth.signInWithIdToken(
+                          credentials: .init(
+                            provider: .apple,
+                            idToken: idToken
+                          )
+                        )
+                          navigationState = .welcome
+                      } catch {
+                        dump(error)
+                      }
                     }
                 }.frame(height: buttonHeight)
                 Text("or").colorInvert()
@@ -94,6 +110,8 @@ struct LoginView : View {
                     }
                 }
             }
+            
+            
             
             navigationState = .welcome
         }

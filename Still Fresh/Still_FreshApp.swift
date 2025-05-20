@@ -16,7 +16,11 @@ struct Still_FreshApp: App {
     
     var body: some Scene {
         WindowGroup {
-             LoginView()
+            if SupaClient.auth.currentUser != nil {
+                StartView()
+            } else {
+                LoginView()
+            }
 //            StartView()
 //                .preferredColorScheme(.light)
         }
