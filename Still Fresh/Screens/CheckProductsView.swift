@@ -34,12 +34,24 @@ struct CheckProductsView: View {
                 if (productLinesWithStatus.isEmpty) {
                     Text("There are no products to show")
                 } else {
-                    List(Array(productLinesWithStatus.keys), id: \.self) { key in
-                        
-                        var icon: String = productLinesWithStatus[key] == .unknown ? "xmark.circle.fill" : "checkmark.circle.fill"
-                        var color: Color = productLinesWithStatus[key] == .unknown ? Color.red : Color.green
-                        
-                        SettingRow(icon: icon, iconColor: color, title: key)
+                    NavigationView{
+                        List(Array(productLinesWithStatus.keys), id: \.self) { key in
+                            
+                            let icon: String = productLinesWithStatus[key] == .unknown ? "exclamationmark.circle.fill" : "checkmark.circle.fill"
+                            let color: Color = productLinesWithStatus[key] == .unknown ? Color.red : Color.green
+                            
+                            if (productLinesWithStatus[key] == .unknown) {
+                                NavigationLink(
+                                    destination: Text(key)
+                                ) {
+                                    SettingRow(icon: icon, iconColor: color, title: key)
+                                }
+                            }
+                            else {
+                                SettingRow(icon: icon, iconColor: color, title: key)
+                            }
+
+                        }
                     }
                 }
 
@@ -64,7 +76,6 @@ struct CheckProductsView: View {
             
             for productName in productLines {
                 do {
-                    print("Testing \(productName)")
                     let product: ProductReceiptNameModel = try await SupaClient
                         .from("product_receipt_names")
                         .select()
