@@ -8,11 +8,18 @@
 import SwiftUI
 import Foundation
 
+enum ProductKnownStatus: CaseIterable {
+    case known, unknown
+}
+
 struct CheckProductsView: View {
     @State var productLines: [String]
+    @State private var productLinesWithStatus: [String: ProductKnownStatus] = [:]
     @State private var showLoading = true
+    @State private var showProductVerifySheet: Bool = false
     @State private var knownProducts: [String] = []
     @State private var unknownProducts: [String] = []
+    @State private var productToVerify: String? = nil
 
     var body: some View {
         VStack {
@@ -20,31 +27,22 @@ struct CheckProductsView: View {
                 ProgressView()
                 Text("We are checking if we know these products already").padding()
             } else {
-                Text("Known products")
+                Text("Products")
                     .font(.title)
                     .padding()
+                
+                if (productLinesWithStatus.isEmpty) {
+                    Text("There are no products to show")
+                } else {
+                    List(Array(productLinesWithStatus.keys), id: \.self) { key in
+                        
+                        var icon: String = productLinesWithStatus[key] == .unknown ? "xmark.circle.fill" : "checkmark.circle.fill"
+                        var color: Color = productLinesWithStatus[key] == .unknown ? Color.red : Color.green
+                        
+                        SettingRow(icon: icon, iconColor: color, title: key)
+                    }
+                }
 
-                if !knownProducts.isEmpty {
-                    List(knownProducts, id: \.self) { product in Text(product)
-                    }
-                } else if (!unknownProducts.isEmpty) {
-                    Text("Unfortunately we don't know any of these products. Check them below").padding()
-                }
-                
-                Text("Unknown products")
-                    .font(.title)
-                    .padding()
-                
-                if !unknownProducts.isEmpty {
-                    List(unknownProducts, id: \.self) {
-                        product in Button(product) {
-                            
-                        }
-                    }
-                } else if (!knownProducts.isEmpty) {
-                    Text("Good news! We know al products on your receipt!").padding()
-                }
-                
                 Button("Next") {
                     
                 }
@@ -66,7 +64,8 @@ struct CheckProductsView: View {
             
             for productName in productLines {
                 do {
-                    try await SupaClient
+                    print("Testing \(productName)")
+                    let product: ProductReceiptNameModel = try await SupaClient
                         .from("product_receipt_names")
                         .select()
                         .eq("product_receipt_name", value: productName)
@@ -74,10 +73,20 @@ struct CheckProductsView: View {
                         .single()
                         .execute()
                         .value
+                                        
+                    let productKnownName: ProductModel = try await SupaClient
+                        .from("products")
+                        .select()
+                        .eq("product_id", value: product.product_id)
+                        .limit(1)
+                        .single()
+                        .execute()
+                        .value
                     
-                    knownProducts.append(productName)
+                    productLinesWithStatus[productKnownName.product_name] = .known
+                    
                 } catch {
-                    unknownProducts.append(productName)
+                    productLinesWithStatus[productName] = .unknown
                 }
             }
             
