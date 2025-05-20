@@ -1,5 +1,10 @@
 import SwiftUI
 
+enum AlertType {
+    case error
+    case signOut
+}
+
 struct SettingsView: View {
     @Environment(\.presentationMode) var presentationMode
     @State private var notifications = true
@@ -9,6 +14,9 @@ struct SettingsView: View {
     @State private var username = "App Tester"
     @State private var email = "apptester@stillfresh.nl"
     @State private var showEditProfile = false
+    @State private var showErrorMessage = false
+    @State private var alertType: AlertType = .error
+    @State private var showLoginScreen = false
     
     private let tealColor = Color(red: 122/255, green: 190/255, blue: 203/255)
     private let units = ["Days", "Weeks"]
@@ -155,7 +163,8 @@ struct SettingsView: View {
                 // Sign Out
                 Section {
                     Button(action: {
-                        // Sign out action
+                        alertType = .signOut
+                        showErrorMessage = true
                     }) {
                         HStack {
                             Spacer()
@@ -178,6 +187,31 @@ struct SettingsView: View {
                             .font(.system(size: 16, weight: .medium))
                     }
                 }
+            }
+            .alert(isPresented: $showErrorMessage) {
+                switch alertType {
+                case .error:
+                    Alert(title: Text("Error"),
+                                      message: Text("An error occured"),
+                                      dismissButton: .default(Text("Dismiss")))
+                case .signOut:
+                    Alert(
+                        title: Text("Sign out?"),
+                        message: Text("Are you sure you want to sign out?"),
+                        primaryButton: .destructive(Text("Sign Out")) {
+                            Task {
+                                try? await SupaClient.auth.signOut()
+                                showLoginScreen = true
+                            }
+                        },
+                        secondaryButton: .cancel()
+                    )
+
+                }
+                
+            }
+            .fullScreenCover(isPresented: $showLoginScreen) {
+                LoginView()
             }
         }
     }
