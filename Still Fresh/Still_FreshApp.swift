@@ -125,7 +125,6 @@ struct Still_FreshApp: App {
     
     var body: some Scene {
         WindowGroup {
-            
             // Generic loader, probably don't use for anything other than login...
             if userState.isLoading {
                 GenericLoader()
@@ -141,14 +140,6 @@ struct Still_FreshApp: App {
                         .preferredColorScheme(.light)
                 }
             }
-            
-//            if !userState.isSetup {
-//                SetupView(userState: userState) // TODO: Implement a proper SetupView()
-//                    .preferredColorScheme(.light)
-//            }
-            
-//            StartView()
-//                .preferredColorScheme(.light)
         }
     }
 }

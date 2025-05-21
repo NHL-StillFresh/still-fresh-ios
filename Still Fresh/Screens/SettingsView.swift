@@ -40,7 +40,7 @@ struct SettingsView: View {
                         }
                         
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(username)
+                            Text(userState.userProfile?.firstName ?? "User")
                                 .font(.system(size: 20, weight: .bold))
                             
                             Text(email)
