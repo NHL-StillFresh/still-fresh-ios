@@ -16,7 +16,7 @@ enum AppState {
 }
 
 struct LoginWithEmailView: View {
-    
+    @ObservedObject var userState = UserStateModel()
     @State private var loginState: AppState = .email
     @State private var isTaskDone: Bool = false
     @State private var email: String = ""
@@ -145,6 +145,7 @@ struct LoginWithEmailView: View {
                     onLoginSuccess?(email)
                     dismiss()
                 }
+                userState.isAuthenticated = true
             } catch {
                 DispatchQueue.main.async {
                     callbackMessage = error.localizedDescription.debugDescription

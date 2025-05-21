@@ -9,6 +9,8 @@ import SwiftUI
 import AuthenticationServices
 
 struct LoginView : View {
+    // Used to keep track of user state
+    @ObservedObject var userState = UserStateModel()
     @State private var showingLoginSheet = false
     @State private var navigationState: NavigationState = .login
     @State private var username = "User"
@@ -28,6 +30,11 @@ struct LoginView : View {
                 } onCompletion: {
                     result in
                     Task {
+                        defer {
+                            userState.isLoading = false
+                        }
+                        userState.isLoading = true
+                        
                       do {
                         guard let credential = try result.get().credential as? ASAuthorizationAppleIDCredential
                         else {
@@ -44,7 +51,7 @@ struct LoginView : View {
                             idToken: idToken
                           )
                         )
-                          navigationState = .welcome
+                          userState.isAuthenticated = true
                       } catch {
                         dump(error)
                       }
@@ -65,7 +72,7 @@ struct LoginView : View {
                     .foregroundColor(Color("LoginBackgroundColor"))
                     .cornerRadius(8)
                 }.sheet(isPresented: $showingLoginSheet) {
-                    LoginWithEmailView(onLoginSuccess: { email in
+                    LoginWithEmailView(userState: userState, onLoginSuccess: { email in
                         // Extract username from email for welcome message
                         if let atIndex = email.firstIndex(of: "@") {
                             username = String(email[..<atIndex])

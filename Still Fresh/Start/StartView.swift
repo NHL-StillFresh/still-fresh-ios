@@ -7,6 +7,9 @@
 import SwiftUI
 
 struct StartView : View {
+    // Used to keep track of user state
+    @ObservedObject var userState = UserStateModel()
+    
     @State private var selectedTab = 0
     
     // Animation states
@@ -20,7 +23,7 @@ struct StartView : View {
             VStack(spacing: 0) {
                 // Show appropriate NavBar based on the selected tab
                 if selectedTab == 0 {
-                    HomeNavBar()
+                    HomeNavBar(userState: userState)
                         .opacity(navBarOpacity)
                 } else {
                     TitleNavBar(title: tabTitle(for: selectedTab))

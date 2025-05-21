@@ -7,6 +7,7 @@ enum AlertType {
 
 struct SettingsView: View {
     @Environment(\.presentationMode) var presentationMode
+    @ObservedObject var userState = UserStateModel()
     @State private var notifications = true
     @State private var darkMode = false
     @State private var expiryNotificationDays = 3
@@ -202,6 +203,7 @@ struct SettingsView: View {
                             Task {
                                 try? await SupaClient.auth.signOut()
                                 showLoginScreen = true
+                                userState.invalidateSession()
                             }
                         },
                         secondaryButton: .cancel()
