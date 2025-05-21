@@ -8,7 +8,7 @@ import SwiftUI
 
 struct StartView : View {
     // Used to keep track of user state
-    @ObservedObject var userState = UserStateModel()
+    @ObservedObject var userState: UserStateModel
     
     @State private var selectedTab = 0
     
@@ -26,7 +26,7 @@ struct StartView : View {
                     HomeNavBar(userState: userState)
                         .opacity(navBarOpacity)
                 } else {
-                    TitleNavBar(title: tabTitle(for: selectedTab))
+                    TitleNavBar(title: tabTitle(for: selectedTab), userState: userState)
                         .opacity(navBarOpacity)
                 }
             
@@ -86,5 +86,5 @@ struct StartView : View {
 }
 
 #Preview {
-    StartView()
+    StartView(userState: UserStateModel())
 }

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct HomeNavBar: View {
-    @ObservedObject var userState = UserStateModel()
+    @ObservedObject var userState: UserStateModel
     
     @State private var greeting: String = ""
     @State private var showAccountScreen = false
@@ -41,7 +41,7 @@ struct HomeNavBar: View {
                     .symbolRenderingMode(.palette)
             }
             .sheet(isPresented: $showAccountScreen) {
-                SettingsView()
+                SettingsView(userState: userState)
             }
         }
         .padding()
@@ -70,5 +70,5 @@ struct HomeNavBar: View {
 }
 
 #Preview {
-    HomeNavBar()
-} 
+    HomeNavBar(userState: UserStateModel())
+}

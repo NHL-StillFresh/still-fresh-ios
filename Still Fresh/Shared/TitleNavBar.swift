@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TitleNavBar: View {
     var title: String
+    @ObservedObject var userState: UserStateModel
     @State private var showAccountScreen = false
     
     var body: some View {
@@ -22,7 +23,7 @@ struct TitleNavBar: View {
                     .symbolRenderingMode(.palette)
             }
             .sheet(isPresented: $showAccountScreen) {
-                SettingsView()
+                SettingsView(userState: UserStateModel())
             }
         }
         .padding()
@@ -30,5 +31,5 @@ struct TitleNavBar: View {
 }
 
 #Preview {
-    TitleNavBar(title: "Basket")
-} 
+    TitleNavBar(title: "Basket", userState: UserStateModel())
+}

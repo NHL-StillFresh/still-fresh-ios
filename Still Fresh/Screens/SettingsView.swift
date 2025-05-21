@@ -7,7 +7,7 @@ enum AlertType {
 
 struct SettingsView: View {
     @Environment(\.presentationMode) var presentationMode
-    @ObservedObject var userState = UserStateModel()
+    @ObservedObject var userState: UserStateModel
     @State private var notifications = true
     @State private var darkMode = false
     @State private var expiryNotificationDays = 3
@@ -17,7 +17,6 @@ struct SettingsView: View {
     @State private var showEditProfile = false
     @State private var showErrorMessage = false
     @State private var alertType: AlertType = .error
-    @State private var showLoginScreen = false
     
     private let tealColor = Color(red: 122/255, green: 190/255, blue: 203/255)
     private let units = ["Days", "Weeks"]
@@ -202,7 +201,6 @@ struct SettingsView: View {
                         primaryButton: .destructive(Text("Sign Out")) {
                             Task {
                                 try? await SupaClient.auth.signOut()
-                                showLoginScreen = true
                                 userState.invalidateSession()
                             }
                         },
@@ -211,9 +209,6 @@ struct SettingsView: View {
 
                 }
                 
-            }
-            .fullScreenCover(isPresented: $showLoginScreen) {
-                LoginView()
             }
         }
     }
@@ -240,5 +235,5 @@ struct SettingRow: View {
 }
 
 #Preview {
-    SettingsView()
-} 
+    SettingsView(userState: UserStateModel())
+}
