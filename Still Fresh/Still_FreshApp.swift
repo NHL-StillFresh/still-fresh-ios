@@ -80,6 +80,29 @@ class UserStateModel : ObservableObject {
             }
         }
     }
+    
+    public func setNewUserProfile(profileObject: ProfileObject) async {
+        do {
+            let profile: ProfileModel = try await SupaClient
+                .from("profiles")
+                .select()
+                .eq("user_id", value: profileObject.UID)
+                .limit(1)
+                .single()
+                .execute()
+                .value
+            
+            // Add names and such if not exists
+            profileObject.firstName = profile.profile_first_name
+            profileObject.lastName = profile.profile_last_name
+            
+            self.userProfile = profileObject
+            self.isSetup = true
+        } catch {
+            debugPrint(error.localizedDescription)
+        }
+    }
+    
     public func invalidateSession() {
         self.isAuthenticated = false
         self.isSetup = false

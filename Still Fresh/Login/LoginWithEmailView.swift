@@ -121,15 +121,16 @@ struct LoginWithEmailView: View {
     func authenticateUser() {
         Task {
             do {
-                try await SupaClient
+                let user = try await SupaClient
                     .auth
                     .signIn(email: email, password: password)
                 
+                // Oh boy this is getting messy
+                await userState.setNewUserProfile(profileObject: ProfileObject(UID: String(describing: user.user.id)))
                 userState.isAuthenticated = true
             } catch {
                 callbackMessage = error.localizedDescription.debugDescription
                 optForCreation = true
-                
             }
         }
     }
