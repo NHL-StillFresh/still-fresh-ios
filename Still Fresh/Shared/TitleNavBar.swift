@@ -23,7 +23,7 @@ struct TitleNavBar: View {
                     .symbolRenderingMode(.palette)
             }
             .sheet(isPresented: $showAccountScreen) {
-                SettingsView(userState: UserStateModel())
+                SettingsView(userState: userState)
             }
         }
         .padding()
