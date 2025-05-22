@@ -7,6 +7,7 @@
 
 import SwiftUI
 import UIKit
+import UserNotifications
 
 // Keep this in the `Still_FreshApp.swift` file
 // Used to keep track of user bound state
@@ -145,8 +146,11 @@ struct Still_FreshApp: App {
     @StateObject var userState = UserStateModel()
     @State var showWelcome: Bool = true
     
+    private let notificationDelegate = NotificationDelegate() // Create an instance of the delegate
+
     init() {
         UIView.appearance().overrideUserInterfaceStyle = .light
+        UNUserNotificationCenter.current().delegate = notificationDelegate
     }
     
     var body: some Scene {

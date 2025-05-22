@@ -9,6 +9,7 @@ struct SettingsView: View {
     @Environment(\.presentationMode) var presentationMode
     @ObservedObject var userState: UserStateModel
     @State private var notifications = true
+    @AppStorage("notificationsEnabled") private var notifications = false
     @State private var darkMode = false
     @State private var expiryNotificationDays = 3
     @State private var selectedUnit = "Days"
@@ -77,6 +78,23 @@ struct SettingsView: View {
                         SettingRow(icon: "bell.fill", iconColor: .orange, title: "Notifications")
                     }
                     .tint(tealColor)
+                    .onChange(of: notifications) {
+                        if notifications {
+                            requestNotificationPermission { granted in
+                                if granted {
+                                    sendTimeNotification(
+                                        title: "Setting successfully changed!",
+                                        body: "Notifications are now enabled",
+                                        after: 1
+                                    )
+                                } else {
+                                    print("Notification permission not granted.")
+                                }
+                            }
+                        }
+                    }
+
+
                     
                     Toggle(isOn: $darkMode) {
                         SettingRow(icon: "moon.fill", iconColor: .purple, title: "Dark Mode")

@@ -9,6 +9,7 @@ import SwiftUI
 struct StartView : View {
     // Used to keep track of user state
     @ObservedObject var userState: UserStateModel
+    @AppStorage("notificationsEnabled") private var notifications = false
     
     @State private var selectedTab = 0
     
@@ -37,7 +38,7 @@ struct StartView : View {
             .onAppear {
                 animateInterfaceElements()
             }
-            .onChange(of: selectedTab) { newTab in
+            .onChange(of: selectedTab) {
                 // Animate content when tab changes
                 withAnimation(.easeOut(duration: 0.2)) {
                     contentOpacity = 0
@@ -52,8 +53,19 @@ struct StartView : View {
             }
         }
         .navigationBarHidden(true)
+        .onAppear {
+            requestNotificationPermission { granted in
+                if granted {
+                    notifications = true
+                    sendTimeNotification(title: "Welcome to the Still Fresh app!", body: "And now we're gonna spam you with notifications.", after: 10)
+                } else {
+                    notifications = false
+                    print("Notification permission not granted.")
+                }
+            }
+        }
     }
-    
+        
     // Helper function to get the title for each tab
     private func tabTitle(for tab: Int) -> String {
         switch tab {
