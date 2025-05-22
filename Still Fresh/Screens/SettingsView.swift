@@ -175,6 +175,21 @@ struct SettingsView: View {
                         }
                     }
                 }
+                #if DEBUG
+                Section {
+                    Button(action: {
+                        userState.isLoading = true
+                    }) {
+                        HStack {
+                            Spacer()
+                            Text("Check Loader (DEBUG ONLY)")
+                                .foregroundColor(.red)
+                                .font(.system(size: 16, weight: .medium))
+                            Spacer()
+                        }
+                    }
+                }
+                #endif
             }
             .navigationTitle("Settings")
             .toolbar {
@@ -204,7 +219,7 @@ struct SettingsView: View {
                                 userState.invalidateSession()
                             }
                         },
-                        secondaryButton: .cancel()
+                        secondaryButton: .cancel(),
                     )
 
                 }

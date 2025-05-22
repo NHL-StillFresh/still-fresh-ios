@@ -83,7 +83,7 @@ struct MarqueeImage: View {
             .onDisappear {
                 timer?.invalidate()
             }
-            .onChange(of: imageWidth) { _ in
+            .onChange(of: imageWidth) { 
                 startMarquee(totalWidth: totalWidth)
             }
         }
