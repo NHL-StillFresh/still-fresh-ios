@@ -49,8 +49,17 @@ struct StartView : View {
             }
         }
         .navigationBarHidden(true)
+        .onAppear {
+            requestNotificationPermission { granted in
+                if granted {
+                    sendTimeNotification(title: "Welcome to the Still Fresh app!", body: "And now we're gonna spam you with notifications.", after: 30)
+                } else {
+                    print("Notification permission not granted.")
+                }
+            }
+        }
     }
-    
+        
     // Helper function to get the title for each tab
     private func tabTitle(for tab: Int) -> String {
         switch tab {
