@@ -7,6 +7,8 @@
 import SwiftUI
 
 struct StartView : View {
+    @AppStorage("notificationsEnabled") private var notifications = false
+    
     @State private var selectedTab = 0
     
     // Animation states
@@ -52,8 +54,10 @@ struct StartView : View {
         .onAppear {
             requestNotificationPermission { granted in
                 if granted {
-                    sendTimeNotification(title: "Welcome to the Still Fresh app!", body: "And now we're gonna spam you with notifications.", after: 30)
+                    notifications = true
+                    sendTimeNotification(title: "Welcome to the Still Fresh app!", body: "And now we're gonna spam you with notifications.", after: 10)
                 } else {
+                    notifications = false
                     print("Notification permission not granted.")
                 }
             }

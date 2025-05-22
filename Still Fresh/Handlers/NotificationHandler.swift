@@ -7,6 +7,10 @@
 
 import UserNotifications
 
+func notificationsEnabled() -> Bool {
+    return UserDefaults.standard.bool(forKey: "notificationsEnabled")
+}
+
 func requestNotificationPermission(completion: @escaping (Bool) -> Void) {
     let center = UNUserNotificationCenter.current()
     center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
@@ -20,6 +24,10 @@ func requestNotificationPermission(completion: @escaping (Bool) -> Void) {
 }
 
 func sendTimeNotification(title: String, body: String, after seconds: TimeInterval) {
+    if (!notificationsEnabled()) {
+        return
+    }
+    
     let center = UNUserNotificationCenter.current()
     let content = UNMutableNotificationContent()
     content.title = title
@@ -38,6 +46,10 @@ func sendTimeNotification(title: String, body: String, after seconds: TimeInterv
 }
 
 func sendCalendarNotification(title: String, body: String, date: Date) {
+    if (!notificationsEnabled()) {
+        return
+    }
+    
     let center = UNUserNotificationCenter.current()
     let content = UNMutableNotificationContent()
     content.title = title
@@ -57,8 +69,16 @@ func sendCalendarNotification(title: String, body: String, date: Date) {
 
 class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                 willPresent notification: UNNotification,
+                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+
+        completionHandler([.banner, .sound])
+    }
+
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
                                  didReceive response: UNNotificationResponse,
                                  withCompletionHandler completionHandler: @escaping () -> Void) {
+
         completionHandler()
     }
 }

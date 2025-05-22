@@ -7,7 +7,8 @@ enum AlertType {
 
 struct SettingsView: View {
     @Environment(\.presentationMode) var presentationMode
-    @State private var notifications = true
+    @AppStorage("notificationsEnabled") private var notifications = false
+    
     @State private var darkMode = false
     @State private var expiryNotificationDays = 3
     @State private var selectedUnit = "Days"
@@ -84,7 +85,7 @@ struct SettingsView: View {
                                     sendTimeNotification(
                                         title: "Setting successfully changed!",
                                         body: "Notifications are now enabled",
-                                        after: 5
+                                        after: 1
                                     )
                                 } else {
                                     print("Notification permission not granted.")
