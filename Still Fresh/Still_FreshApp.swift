@@ -96,8 +96,10 @@ class UserStateModel : ObservableObject {
             profileObject.firstName = profile.profile_first_name
             profileObject.lastName = profile.profile_last_name
             
-            self.userProfile = profileObject
-            self.isSetup = true
+            await MainActor.run {
+                self.userProfile = profileObject
+                self.isSetup = true
+            }
         } catch {
             debugPrint(error.localizedDescription)
         }
@@ -141,6 +143,7 @@ class ProfileObject : ObservableObject {
 @main
 struct Still_FreshApp: App {
     @StateObject var userState = UserStateModel()
+    @State var showWelcome: Bool = true
     
     init() {
         UIView.appearance().overrideUserInterfaceStyle = .light
@@ -158,6 +161,12 @@ struct Still_FreshApp: App {
                 } else if userState.isSetup {
                     StartView(userState: userState)
                         .preferredColorScheme(.light)
+                        .fullScreenCover(isPresented: $showWelcome) {
+                            WelcomeAnimation(
+                                username: userState.userProfile?.firstName ?? "",
+                                isPresented: $showWelcome
+                            )
+                        }
                 } else {
                     SetupView(userState: userState)
                         .preferredColorScheme(.light)

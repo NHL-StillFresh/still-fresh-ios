@@ -17,12 +17,7 @@ struct GenericLoader: View {
                 .ignoresSafeArea()
             
             VStack(spacing: 32) {
-                Image("LoginImage")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: .infinity)
-                    .frame(height: UIScreen.main.bounds.height * 0.45)
-                    .clipped()
+                MarqueeImage(imageName: "LoginImage", height: UIScreen.main.bounds.height * 0.45)
                     .padding(.top, 32)
                 
                 Spacer(minLength: 0)
@@ -55,6 +50,73 @@ struct GenericLoader: View {
             withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
                 trimEnd = 0.8
             }
+        }
+    }
+}
+
+struct MarqueeImage: View {
+    let imageName: String
+    let height: CGFloat
+    @State private var offset: CGFloat = 0
+    @State private var imageWidth: CGFloat = 1 // Will be set after image loads
+    let speed: CGFloat = 60 // points per second
+    @State private var timer: Timer? = nil
+
+    var body: some View {
+        GeometryReader { geo in
+            let totalWidth = geo.size.width
+            HStack(spacing: 0) {
+                ForEach(0..<tileCount(for: totalWidth), id: \.self) { _ in
+                    Image(imageName)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(height: height)
+                        .background(WidthReader(width: $imageWidth))
+                }
+            }
+            .offset(x: offset)
+            .frame(width: totalWidth, height: height, alignment: .leading)
+            .clipped()
+            .onAppear {
+                startMarquee(totalWidth: totalWidth)
+            }
+            .onDisappear {
+                timer?.invalidate()
+            }
+            .onChange(of: imageWidth) { _ in
+                startMarquee(totalWidth: totalWidth)
+            }
+        }
+        .frame(height: height)
+    }
+
+    func tileCount(for totalWidth: CGFloat) -> Int {
+        guard imageWidth > 0 else { return 3 }
+        // +2 for seamless looping
+        return Int(ceil(totalWidth / imageWidth)) + 2
+    }
+
+    func startMarquee(totalWidth: CGFloat) {
+        timer?.invalidate()
+        guard imageWidth > 1 else { return }
+        offset = 0
+        timer = Timer.scheduledTimer(withTimeInterval: 1/60, repeats: true) { _ in
+            let step = speed / 60 // points per frame
+            offset -= step
+            if abs(offset) >= imageWidth {
+                offset += imageWidth
+            }
+        }
+    }
+}
+
+// Helper view to read the width of the image
+struct WidthReader: View {
+    @Binding var width: CGFloat
+    var body: some View {
+        GeometryReader { geo in
+            Color.clear
+                .onAppear { width = geo.size.width }
         }
     }
 }
