@@ -50,7 +50,7 @@ struct LoginView : View {
                                 )
                             )
                             
-                            Tawait userState.setNewUserProfile(profileObject: ProfileObject(UID: String(describing:authResult.user.id)))
+                            await userState.setNewUserProfile(profileObject: ProfileObject(UID: String(describing:authResult.user.id)))
                             
                             userState.isAuthenticated = true
                         } catch {
