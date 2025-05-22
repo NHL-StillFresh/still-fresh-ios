@@ -34,7 +34,7 @@ struct StartView : View {
             .onAppear {
                 animateInterfaceElements()
             }
-            .onChange(of: selectedTab) { newTab in
+            .onChange(of: selectedTab) {
                 // Animate content when tab changes
                 withAnimation(.easeOut(duration: 0.2)) {
                     contentOpacity = 0

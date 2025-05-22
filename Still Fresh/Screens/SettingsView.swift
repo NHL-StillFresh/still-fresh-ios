@@ -77,6 +77,23 @@ struct SettingsView: View {
                         SettingRow(icon: "bell.fill", iconColor: .orange, title: "Notifications")
                     }
                     .tint(tealColor)
+                    .onChange(of: notifications) {
+                        if notifications {
+                            requestNotificationPermission { granted in
+                                if granted {
+                                    sendTimeNotification(
+                                        title: "Setting successfully changed!",
+                                        body: "Notifications are now enabled",
+                                        after: 5
+                                    )
+                                } else {
+                                    print("Notification permission not granted.")
+                                }
+                            }
+                        }
+                    }
+
+
                     
                     Toggle(isOn: $darkMode) {
                         SettingRow(icon: "moon.fill", iconColor: .purple, title: "Dark Mode")
