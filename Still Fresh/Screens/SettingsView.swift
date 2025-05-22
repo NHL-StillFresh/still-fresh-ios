@@ -8,7 +8,6 @@ enum AlertType {
 struct SettingsView: View {
     @Environment(\.presentationMode) var presentationMode
     @ObservedObject var userState: UserStateModel
-    @State private var notifications = true
     @AppStorage("notificationsEnabled") private var notifications = false
     @State private var darkMode = false
     @State private var expiryNotificationDays = 3
