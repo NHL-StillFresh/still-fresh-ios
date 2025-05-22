@@ -1,4 +1,6 @@
 import SwiftUI
+import Auth
+import Supabase
 
 struct ProfileEditView: View {
     @Environment(\.presentationMode) var presentationMode
@@ -91,6 +93,16 @@ struct ProfileEditView: View {
                 Button(action: {
                     username = editedUsername
                     email = editedEmail
+                    
+                    Task {
+                        let attributes = UserAttributes(data: ["display_name": .string(editedUsername)])
+                        do {
+                            try await SupaClient.auth.update(user: attributes)
+                        } catch {
+                            print("Failed to update display_name: \(error)")
+                        }
+                    }
+                    
                     presentationMode.wrappedValue.dismiss()
                 }) {
                     Text("Save Changes")

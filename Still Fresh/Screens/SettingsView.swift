@@ -7,8 +7,8 @@ enum AlertType {
 
 struct SettingsView: View {
     @Environment(\.presentationMode) var presentationMode
+    @ObservedObject var userState: UserStateModel
     @AppStorage("notificationsEnabled") private var notifications = false
-    
     @State private var darkMode = false
     @State private var expiryNotificationDays = 3
     @State private var selectedUnit = "Days"
@@ -17,7 +17,6 @@ struct SettingsView: View {
     @State private var showEditProfile = false
     @State private var showErrorMessage = false
     @State private var alertType: AlertType = .error
-    @State private var showLoginScreen = false
     
     private let tealColor = Color(red: 122/255, green: 190/255, blue: 203/255)
     private let units = ["Days", "Weeks"]
@@ -41,7 +40,7 @@ struct SettingsView: View {
                         }
                         
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(username)
+                            Text(userState.userProfile?.firstName ?? "User")
                                 .font(.system(size: 20, weight: .bold))
                             
                             Text(email)
@@ -193,6 +192,21 @@ struct SettingsView: View {
                         }
                     }
                 }
+                #if DEBUG
+                Section {
+                    Button(action: {
+                        userState.isLoading = true
+                    }) {
+                        HStack {
+                            Spacer()
+                            Text("Check Loader (DEBUG ONLY)")
+                                .foregroundColor(.red)
+                                .font(.system(size: 16, weight: .medium))
+                            Spacer()
+                        }
+                    }
+                }
+                #endif
             }
             .navigationTitle("Settings")
             .toolbar {
@@ -219,17 +233,14 @@ struct SettingsView: View {
                         primaryButton: .destructive(Text("Sign Out")) {
                             Task {
                                 try? await SupaClient.auth.signOut()
-                                showLoginScreen = true
+                                userState.invalidateSession()
                             }
                         },
-                        secondaryButton: .cancel()
+                        secondaryButton: .cancel(),
                     )
 
                 }
                 
-            }
-            .fullScreenCover(isPresented: $showLoginScreen) {
-                LoginView()
             }
         }
     }
@@ -256,5 +267,5 @@ struct SettingRow: View {
 }
 
 #Preview {
-    SettingsView()
-} 
+    SettingsView(userState: UserStateModel())
+}

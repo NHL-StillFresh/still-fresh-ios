@@ -12,27 +12,18 @@ enum AppState {
     case email
     case login
     case register
-    case startView
 }
 
 struct LoginWithEmailView: View {
-    
+    @ObservedObject var userState: UserStateModel
     @State private var loginState: AppState = .email
     @State private var isTaskDone: Bool = false
+    @State private var optForCreation: Bool = false
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var passwordConfirm: String = ""
     @State private var callbackMessage: String = ""
     @Environment(\.dismiss) private var dismiss
-    
-    var onLoginSuccess: ((String) -> Void)?
-    
-    private var showStartView: Binding<Bool> {
-        Binding(
-            get: { loginState == .startView },
-            set: { if !$0 { loginState = .email } }
-        )
-    }
     
     var body: some View {
         ZStack {
@@ -60,36 +51,29 @@ struct LoginWithEmailView: View {
                 // Form content
                 VStack(alignment: .leading, spacing: 24) {
                     switch loginState {
-                        case .email:
-                            fillInEmail()
-                        case .login:
-                            fillInPassword()
-                        case .register:
-                            createAccount()
-                        case .startView:
-                            EmptyView()
+                    case .email:
+                        FillInEmailView()
+                    case .login:
+                        FillInPasswordView()
+                    case .register:
+                        CreateNewAccountView()
+                    @unknown default:
+                        FillInEmailView()
                     }
-                    
                     Text(callbackMessage)
                         .foregroundColor(.red)
                     
                     // Continue button
                     Button(action: {
                         callbackMessage = ""
+                        
                         if loginState == .email {
-                            if email.isEmpty {
-                                callbackMessage = "Please provide an email address."
-                                loginState = .email
-                                return
-                            }
-                            
-                            if !isValidEmail(email) {
+                            if email.isEmpty || !isValidEmail(email) {
                                 callbackMessage = "Please provide a valid email address."
                                 loginState = .email
                                 return
                             } else {
                                 loginState = .login
-                                return
                             }
                         } else if loginState == .login {
                             if password.isEmpty {
@@ -97,9 +81,10 @@ struct LoginWithEmailView: View {
                                 loginState = .login
                                 return
                             }
-                            callbackMessage = "Trying to log you in..."
                             authenticateUser()
                             return
+                        } else if loginState == .register {
+                            createUser()
                         }
                         
                     }) {
@@ -136,19 +121,16 @@ struct LoginWithEmailView: View {
     func authenticateUser() {
         Task {
             do {
-                try await SupaClient
+                let user = try await SupaClient
                     .auth
                     .signIn(email: email, password: password)
                 
-                DispatchQueue.main.async {
-                    // Call the completion handler with email and dismiss
-                    onLoginSuccess?(email)
-                    dismiss()
-                }
+                // Oh boy this is getting messy
+                await userState.setNewUserProfile(profileObject: ProfileObject(UID: String(describing: user.user.id)))
+                userState.isAuthenticated = true
             } catch {
-                DispatchQueue.main.async {
-                    callbackMessage = error.localizedDescription.debugDescription
-                }
+                callbackMessage = error.localizedDescription.debugDescription
+                optForCreation = true
             }
         }
     }
@@ -166,19 +148,21 @@ struct LoginWithEmailView: View {
                     return
                 }
                 
-                try await SupaClient
+                let authResult = try await SupaClient
                     .auth
                     .signUp(email: email, password: password)
                 
-                callbackMessage = "Login to continue"
-                loginState = .login
+                debugPrint("Created user auth: \(authResult)")
+                
+                userState.isAuthenticated = true
+                userState.userProfile = ProfileObject(UID: String(describing: authResult.user.id))
             } catch {
-                callbackMessage = error.localizedDescription
+                callbackMessage = error.localizedDescription.description
             }
         }
     }
     
-    func fillInEmail() -> some View {
+    func FillInEmailView() -> some View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("What's your email?")
@@ -210,14 +194,17 @@ struct LoginWithEmailView: View {
         }
     }
 
-    func fillInPassword() -> some View {
+    func FillInPasswordView() -> some View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Fill in your password")
                     .font(.system(size: 28, weight: .bold))
                     .foregroundColor(.white)
                 
-                Text("Enter your password, if you have an account already we'll log you in.")
+                Text("Enter your password for this email-")
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.8))
+                Text("account: \(email)")
                     .font(.subheadline)
                     .foregroundColor(.white.opacity(0.8))
             }
@@ -235,18 +222,41 @@ struct LoginWithEmailView: View {
                         RoundedRectangle(cornerRadius: 12)
                             .fill(Color.white.opacity(0.15))
                     )
+                if optForCreation {
+                    Button(action: {
+                        password = ""
+                        loginState = .register
+                    }) {
+                        HStack {
+                            Spacer()
+                            Text("Create new account")
+                                .fontWeight(.semibold)
+                            Spacer()
+                        }
+                        .frame(height: 50)
+                        .background(Color.white)
+                        .foregroundColor(Color("LoginBackgroundColor"))
+                        .cornerRadius(8)
+                    }
+                }
             }
         }
     }
 
-    func createAccount() -> some View{
+    func CreateNewAccountView() -> some View{
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Create your account")
                     .font(.system(size: 28, weight: .bold))
                     .foregroundColor(.white)
                 
-                Text("Please note, this isn't fully supported yet, any account created must be deleted via de webpanel in Supabase")
+                Text("Start saving groceries with us!")
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.8))
+                Text("You will be creating an account")
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.8))
+                Text("with this email: \(email).")
                     .font(.subheadline)
                     .foregroundColor(.white.opacity(0.8))
             }
@@ -297,5 +307,5 @@ extension View {
 }
 
 #Preview {
-    LoginView()
+    LoginView(userState: UserStateModel())
 }

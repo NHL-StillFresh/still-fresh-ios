@@ -1,8 +1,9 @@
 import SwiftUI
 
 struct HomeNavBar: View {
+    @ObservedObject var userState: UserStateModel
+    
     @State private var greeting: String = ""
-    @State private var username: String = "App Tester"
     @State private var showAccountScreen = false
     @State private var timeIcon: String = "sun.max"
     
@@ -22,7 +23,7 @@ struct HomeNavBar: View {
                             .foregroundColor(Color(UIColor.darkText))
                     }
                     
-                    Text(username)
+                    Text(userState.userProfile?.firstName ?? "John")
                         .font(.system(size: 24))
                         .fontWeight(.bold)
                         .foregroundColor(Color(UIColor.darkText))
@@ -40,7 +41,7 @@ struct HomeNavBar: View {
                     .symbolRenderingMode(.palette)
             }
             .sheet(isPresented: $showAccountScreen) {
-                SettingsView()
+                SettingsView(userState: userState)
             }
         }
         .padding()
@@ -69,5 +70,5 @@ struct HomeNavBar: View {
 }
 
 #Preview {
-    HomeNavBar()
-} 
+    HomeNavBar(userState: UserStateModel())
+}
