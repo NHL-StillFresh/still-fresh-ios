@@ -49,7 +49,7 @@ struct LoginView : View {
                                     idToken: idToken
                                 )
                             )
-                            
+                        
                             await userState.setNewUserProfile(profileObject: ProfileObject(UID: String(describing:authResult.user.id)))
                             
                             userState.isAuthenticated = true

@@ -93,6 +93,8 @@ class UserStateModel : ObservableObject {
                 .execute()
                 .value
             
+            debugPrint("setNewUserProfile: ", profile)
+            
             // Add names and such if not exists
             profileObject.firstName = profile.profile_first_name
             profileObject.lastName = profile.profile_last_name
@@ -102,7 +104,11 @@ class UserStateModel : ObservableObject {
                 self.isSetup = true
             }
         } catch {
-            debugPrint(error.localizedDescription)
+            debugPrint("UserStateModel: ", error.localizedDescription)
+            
+            await MainActor.run {
+                self.userProfile = profileObject
+            }
         }
     }
     
