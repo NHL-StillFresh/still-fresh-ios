@@ -89,6 +89,8 @@ struct SetupView : View {
                                 fatalError("User profile not set.")
                             }
                             
+                            debugPrint("SetupView: ", userState.userProfile!.UID)
+                            
                             let insertedProfile: ProfileModel = try await SupaClient
                                 .from("profiles")
                                 .insert(ProfileModel(
