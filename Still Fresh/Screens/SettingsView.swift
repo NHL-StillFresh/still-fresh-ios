@@ -236,8 +236,8 @@ struct SettingsView: View {
                                 userState.invalidateSession()
                             }
                         },
-                        secondaryButton: .cancel(),
-                    )
+                        secondaryButton: .cancel()
+                    );
 
                 }
                 
