@@ -6,6 +6,12 @@ struct JumboProduct: Codable, Identifiable {
     let quantity: String?
     let prices: Prices
     let imageInfo: ImageInfo?
+    let available: Bool
+    
+    private enum CodingKeys: String, CodingKey {
+        case id, title, quantity, prices, imageInfo
+        case available = "available"
+    }
     
     struct Prices: Codable {
         let price: Price

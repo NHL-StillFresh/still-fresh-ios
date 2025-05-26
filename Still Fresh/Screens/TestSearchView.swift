@@ -67,16 +67,30 @@ struct TestSearchView: View {
                     .cornerRadius(8)
                     
                     Button("Add \(selected.title) to Supabase") {
-                        // TODO: Add Supabase integration
-                        print("Preparing data for Supabase:")
-                        let dataToStore = [
-                            "id": selected.id,
-                            "title": selected.title,
-                            "price": selected.prices.price.amount / 100,
-                            "image_url": selected.imageUrl as Any,
-                            "quantity": selected.quantity as Any
-                        ]
-                        print(dataToStore)
+                        Task {
+                            do {
+                                // First check if we have a session
+                                guard let _ = try? await SupaClient.auth.session else {
+                                    print("Error: User not authenticated")
+                                    return
+                                }
+                                
+                                let productData: [String: String] = [
+                                    "product_name": selected.title,
+                                    "product_image": selected.imageUrl ?? ""
+                                ]
+                                
+                                try await SupaClient
+                                    .database
+                                    .from("products")
+                                    .insert(productData)
+                                    .execute()
+                                
+                                print("Successfully added product to Supabase")
+                            } catch {
+                                print("Error adding to Supabase: \(error)")
+                            }
+                        }
                     }
                     .padding()
                     .background(Color.blue)
@@ -118,6 +132,7 @@ struct ProductTestCard: View {
                 
                 Text("Price: \(product.displayPrice)")
                     .font(.subheadline)
+                    .foregroundColor(.green)
                 
                 Text("Protein: N/A")
                     .font(.caption)

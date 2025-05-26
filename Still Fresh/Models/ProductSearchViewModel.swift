@@ -24,8 +24,8 @@ class ProductSearchViewModel: ObservableObject {
         do {
             print("Fetching products from Jumbo API...")
             let response = try await jumboService.searchProducts(query: searchQuery)
-            searchResults = response.products.data
-            print("Found \(searchResults.count) products")
+            searchResults = response.products.data.filter { $0.available }
+            print("Found \(searchResults.count) available products")
         } catch {
             print("Search error: \(error)")
             self.error = "Failed to search products: \(error.localizedDescription)"
