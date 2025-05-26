@@ -1,12 +1,29 @@
 import SwiftUI
 
 struct SearchView: View {
+    @AppStorage("recentSearches") private var recentSearchesData: String = "[]"
+    
+    private func getRecentSearches() -> [String] {
+          if let data = recentSearchesData.data(using: .utf8),
+             let decoded = try? JSONDecoder().decode([String].self, from: data) {
+              return decoded
+          }
+          return []
+      }
+
+      private func setRecentSearches(_ newValue: [String]) {
+          if let data = try? JSONEncoder().encode(newValue),
+             let jsonString = String(data: data, encoding: .utf8) {
+              recentSearchesData = jsonString
+          }
+      }
+    
     @State private var searchText = ""
     @State private var isSearching = false
     @State private var selectedCategory: FoodCategory? = nil
     @State private var showFilterSheet = false
     @State private var filters = SearchFilters()
-    @State private var recentSearches: [String] = ["Milk", "Chicken", "Apples", "Bread"]
+
     @State private var searchResults: [FoodItem] = []
     
     // Demo data for recently added items
@@ -39,8 +56,9 @@ struct SearchView: View {
             }
             .onChange(of: searchText) { _, newValue in
                 if !newValue.isEmpty {
-                    // Simulate search results
-                    searchResults = simulateSearch(query: newValue)
+                    Task {
+                        searchResults = await searchProducts(query: newValue)
+                    }
                 }
             }
         }
@@ -53,7 +71,7 @@ struct SearchView: View {
                 categoriesSection
                 
                 // Recent searches section
-                if !recentSearches.isEmpty {
+                if !getRecentSearches().isEmpty {
                     recentSearchesSection
                 }
                 
@@ -102,7 +120,7 @@ struct SearchView: View {
                 
                 Spacer()
                 
-                Button(action: { recentSearches.removeAll() }) {
+                Button(action: { setRecentSearches([]) }) {
                     Text("Clear")
                         .font(.subheadline)
                         .foregroundColor(Color(UIColor.systemTeal))
@@ -111,6 +129,7 @@ struct SearchView: View {
             .padding(.horizontal, 16)
             
             VStack(spacing: 0) {
+                var recentSearches = getRecentSearches()
                 ForEach(recentSearches, id: \.self) { search in
                     Button(action: {
                         searchText = search
@@ -227,12 +246,55 @@ struct SearchView: View {
         }
     }
     
+    private func searchProducts(query: String? = nil , category: FoodCategory? = nil) async -> [FoodItem] {
+        
+        var productsToReturn: [FoodItem] = []
+        
+        do {
+            
+            if let query = query, !query.isEmpty {
+                
+                let products: [ProductModel] = try await SupaClient
+                    .from("products")
+                    .select()
+                    .ilike("product_name", pattern: "%\(query)%")
+                    .limit(15)
+                    .execute()
+                    .value
+                
+                productsToReturn = products.map { product in
+                    let expiryDate = Calendar.current.date(
+                        byAdding: .day,
+                        value: product.product_expiration_in_days ?? 0,
+                        to: Calendar.current.startOfDay(for: Date())
+                    ) ?? Calendar.current.startOfDay(for: Date())
+                    
+                    return FoodItem(
+                        id: UUID(),
+                        name: product.product_name,
+                        store: product.source_id ?? "Unknown",
+                        image: product.product_image ?? "chicken",
+                        expiryDate: expiryDate
+                    )
+                }
+                
+            } else if let category = category {
+                
+            }
+            
+        } catch {
+            print ("Error searching products: \(error)")
+        }
+        
+        return productsToReturn
+    }
+    
     // Simulate search results based on query
     private func simulateSearch(query: String? = nil, category: FoodCategory? = nil) -> [FoodItem] {
         let sampleItems = FoodItem.sampleItems
         
         if let query = query, !query.isEmpty {
-            return sampleItems.filter { 
+            return sampleItems.filter {
                 $0.name.lowercased().contains(query.lowercased()) ||
                 $0.store.lowercased().contains(query.lowercased())
             }
