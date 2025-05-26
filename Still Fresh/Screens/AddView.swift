@@ -26,18 +26,18 @@ struct AddView: View {
         
         var message: String {
             switch self {
-                case .ready: return "Druk op Scan om te starten"
-                case .processing: return "Bon verwerken..."
+                case .ready: return "Press scan to start"
+                case .processing: return "Processing receipt..."
                 case .success: return ""
-                case .noProductsFound: return "Geen producten gevonden op deze bon"
-                case .error: return "Er is een fout opgetreden bij het scannen"
+                case .noProductsFound: return "No products found on this receipt"
+                case .error: return "An error occurred while scanning the receipt"
             }
         }
     }
     
     enum AddOption: String, CaseIterable, Identifiable {
-        case scanReceipt = "Scan bon"
-        case addProduct = "Voeg product toe"
+        case scanReceipt = "Scan receipt"
+        case addProduct = "Add manually"
         case scanProduct = "Scan product"
         
         var id: String { self.rawValue }
@@ -52,9 +52,9 @@ struct AddView: View {
         
         var description: String {
             switch self {
-            case .scanReceipt: return "Scan een kassabon om producten toe te voegen"
-            case .addProduct: return "Voeg handmatig een product toe"
-            case .scanProduct: return "Scan een barcode van een product"
+            case .scanReceipt: return "Scan a receipt to add products"
+            case .addProduct: return "Add a product manually"
+            case .scanProduct: return "Scan a barcode of a product"
             }
         }
     }
@@ -69,7 +69,7 @@ struct AddView: View {
                 .padding(.bottom, 12)
             
             // Title
-            Text("Toevoegen")
+            Text("Add products")
                 .font(.title2)
                 .fontWeight(.bold)
                 .frame(maxWidth: .infinity, alignment: .leading)
