@@ -21,6 +21,7 @@ struct CheckProductsView: View {
     @State private var selectedProducts: [String: JumboProduct] = [:]
     @State private var expandedProducts: Set<String> = []
     @State private var isAddingProducts = false
+    @State private var showWarningAlert = false
     @Environment(\.isPreview) private var isPreview
     @Environment(\.dismiss) private var dismiss
     
@@ -33,7 +34,15 @@ struct CheckProductsView: View {
                 if showLoading {
                     loadingView
                 } else {
-                    productListView
+                    ZStack {
+                        productListView
+                        
+                        // Fixed bottom button
+                        VStack {
+                            Spacer()
+                            addToBasketButton
+                        }
+                    }
                 }
             }
             .navigationTitle("Product Verification")            
@@ -46,17 +55,6 @@ struct CheckProductsView: View {
                     }
                     .foregroundColor(tealColor)
                 }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if !isAddingProducts && !unknownProducts.isEmpty && !selectedProducts.isEmpty {
-                        Button("Add All") {
-                            addAllSelectedProducts()
-                        }
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(tealColor)
-                        .disabled(selectedProducts.isEmpty)
-                    }
-                }
             }
             .onAppear {
                 if isPreview {
@@ -65,6 +63,116 @@ struct CheckProductsView: View {
                     checkProducts()
                 }
             }
+            .alert("Incomplete Verification", isPresented: $showWarningAlert) {
+                Button("Continue Anyway", role: .destructive) {
+                    addAllSelectedProducts()
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("You haven't verified all unknown products yet. Only the products you've selected will be added to your basket. Continue anyway?")
+            }
+        }
+    }
+    
+    private var addToBasketButton: some View {
+        VStack(spacing: 0) {
+            // Gradient overlay to fade content
+            LinearGradient(
+                colors: [Color(.systemBackground).opacity(0), Color(.systemBackground)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 20)
+            
+            // Button container
+            VStack(spacing: 12) {
+                // Warning text if not all items are verified
+                if !unknownProducts.isEmpty && selectedProducts.count < unknownProducts.count {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(.orange)
+                        
+                        Text("\(unknownProducts.count - selectedProducts.count) item(s) still need verification")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.orange)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(.orange.opacity(0.1))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(.orange.opacity(0.3), lineWidth: 1)
+                            )
+                    )
+                }
+                
+                // Add to basket button
+                Button(action: handleAddToBasket) {
+                    HStack(spacing: 12) {
+                        if isAddingProducts {
+                            ProgressView()
+                                .scaleEffect(0.9)
+                                .tint(.white)
+                        } else {
+                            Image(systemName: "basket.fill")
+                                .font(.system(size: 16, weight: .medium))
+                        }
+                        
+                        Text(isAddingProducts ? "Adding to Basket..." : "Add to Basket")
+                            .font(.system(size: 17, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(
+                                LinearGradient(
+                                    colors: buttonEnabled ? [tealColor, tealColor.opacity(0.8)] : [Color(.systemGray4), Color(.systemGray3)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                    )
+                    .shadow(color: buttonEnabled ? tealColor.opacity(0.3) : .clear, radius: 8, x: 0, y: 4)
+                }
+                .disabled(!buttonEnabled || isAddingProducts)
+                .animation(.easeInOut(duration: 0.2), value: buttonEnabled)
+                .animation(.easeInOut(duration: 0.2), value: isAddingProducts)
+                
+                // Selection summary
+                if !unknownProducts.isEmpty {
+                    Text("\(selectedProducts.count) of \(unknownProducts.count) products selected")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 34) // Extra padding for home indicator
+            .background(Color(.systemBackground))
+        }
+    }
+    
+    private var buttonEnabled: Bool {
+        return !selectedProducts.isEmpty || !knownProducts.isEmpty
+    }
+    
+    private func handleAddToBasket() {
+        print("🔵 handleAddToBasket called")
+        print("🔵 selectedProducts count: \(selectedProducts.count)")
+        print("🔵 unknownProducts count: \(unknownProducts.count)")
+        print("🔵 knownProducts count: \(knownProducts.count)")
+        
+        // Check if all unknown products are verified
+        if !unknownProducts.isEmpty && selectedProducts.count < unknownProducts.count {
+            print("🟡 Showing warning alert - not all products verified")
+            showWarningAlert = true
+        } else {
+            print("🟢 All products verified or no unknown products - proceeding to add")
+            addAllSelectedProducts()
         }
     }
     
@@ -132,8 +240,8 @@ struct CheckProductsView: View {
                     .padding(.horizontal, 16)
                 }
                 
-                // Bottom spacing for tab bar
-                Color.clear.frame(height: 100)
+                // Bottom spacing for fixed button
+                Color.clear.frame(height: 160)
             }
             .padding(.top, 8)
         }
@@ -367,77 +475,6 @@ struct CheckProductsView: View {
         }
     }
     
-    private func addAllSelectedProducts() {
-        guard !selectedProducts.isEmpty else { return }
-        
-        isAddingProducts = true
-        
-        Task {
-            do {
-                // Try to authenticate first
-                do {
-                    _ = try await SupaClient.auth.signIn(email: "elmedin@test.nl", password: "elmedin123")
-                } catch {
-                    print("Authentication error: \(error.localizedDescription)")
-                }
-                
-                // Add all selected products to database
-                for (_, product) in selectedProducts {
-                    let productData: [String: String] = [
-                        "product_name": product.title,
-                        "product_image": product.imageUrl ?? ""
-                    ]
-                    
-                    try await SupaClient
-                        .database
-                        .from("products")
-                        .insert(productData)
-                        .execute()
-                }
-                
-                await MainActor.run {
-                    isAddingProducts = false
-                    dismiss()
-                }
-                
-            } catch {
-                await MainActor.run {
-                    isAddingProducts = false
-                }
-                print("Error adding products: \(error.localizedDescription)")
-            }
-        }
-    }
-    
-    private func setupForPreview() {
-        // For preview, we'll mark some products as unknown and some as known
-        let products = productLines
-        for (index, product) in products.enumerated() {
-            productLinesWithStatus[product] = index % 3 == 0 ? .known : .unknown
-        }
-        showLoading = false
-        
-        // Add some mock search results for preview
-        searchResults["Kaasstengels"] = [
-            JumboProduct(
-                id: "1",
-                title: "Jumbo Kaasstengels 100g",
-                quantity: "100g",
-                prices: JumboProduct.Prices(price: JumboProduct.Prices.Price(amount: 299, unitSize: "100g")),
-                imageInfo: nil,
-                available: true
-            ),
-            JumboProduct(
-                id: "2",
-                title: "AH Kaasstengels 150g",
-                quantity: "150g",
-                prices: JumboProduct.Prices(price: JumboProduct.Prices.Price(amount: 349, unitSize: "150g")),
-                imageInfo: nil,
-                available: true
-            )
-        ]
-    }
-    
     private func checkProducts() {
         Task {
             showLoading = true
@@ -471,6 +508,120 @@ struct CheckProductsView: View {
             
             showLoading = false
         }
+    }
+    
+    private func addAllSelectedProducts() {
+        print("🚀 addAllSelectedProducts called")
+        print("🚀 selectedProducts: \(selectedProducts)")
+        print("🚀 knownProducts: \(knownProducts)")
+        
+        guard !selectedProducts.isEmpty || !knownProducts.isEmpty else { 
+            print("❌ Guard failed - no products to add")
+            return 
+        }
+        
+        print("✅ Guard passed - proceeding with database operations")
+        isAddingProducts = true
+        
+        Task {
+            do {
+                print("🔐 Starting authentication...")
+                // Try to authenticate first
+                do {
+                    let result = try await SupaClient.auth.signIn(email: "elmedin@test.nl", password: "elmedin123")
+                    print("✅ Authentication successful: \(result)")
+                } catch {
+                    print("❌ Authentication error: \(error.localizedDescription)")
+                }
+                
+                print("📦 Starting to add \(selectedProducts.count) products to database")
+                
+                // Add all selected products from unknown products to database
+                for (index, (originalName, product)) in selectedProducts.enumerated() {
+                    print("📝 Processing product \(index + 1)/\(selectedProducts.count): \(originalName) -> \(product.title)")
+                    
+                    // First add the product to products table (like in TestSearchView)
+                    let productData: [String: String] = [
+                        "product_name": product.title,
+                        "product_image": product.imageUrl ?? ""
+                    ]
+                    
+                    print("📋 Product data to insert: \(productData)")
+                    
+                    let insertedProduct: ProductModel = try await SupaClient
+                        .database
+                        .from("products")
+                        .insert(productData)
+                        .select()
+                        .single()
+                        .execute()
+                        .value
+                    
+                    print("✅ Product inserted with ID: \(insertedProduct.product_id)")
+                    
+                    // Then add mapping from receipt name to product_id
+                    let mappingData: [String: String] = [
+                        "product_receipt_name": originalName,
+                        "product_id": String(insertedProduct.product_id)
+                    ]
+                    
+                    print("🔗 Mapping data to insert: \(mappingData)")
+                    
+                    try await SupaClient
+                        .database
+                        .from("product_receipt_names")
+                        .insert(mappingData)
+                        .execute()
+                    
+                    print("✅ Mapping inserted successfully for: \(originalName)")
+                }
+                
+                print("🎉 Successfully added \(selectedProducts.count) products to database")
+                
+                await MainActor.run {
+                    print("🏁 Updating UI - setting isAddingProducts to false and dismissing")
+                    isAddingProducts = false
+                    dismiss()
+                }
+                
+            } catch {
+                await MainActor.run {
+                    print("❌ Error occurred, setting isAddingProducts to false")
+                    isAddingProducts = false
+                }
+                print("❌ Error adding products: \(error.localizedDescription)")
+                print("❌ Full error: \(error)")
+            }
+        }
+    }
+    
+    private func setupForPreview() {
+        // For preview, we'll mark some products as unknown and some as known
+        let products = productLines
+        for (index, product) in products.enumerated() {
+            productLinesWithStatus[product] = index % 3 == 0 ? .known : .unknown
+        }
+        showLoading = false
+        
+        // Add some mock search results for preview
+        searchResults["Kaasstengels"] = [
+            JumboProduct(
+                id: "1",
+                title: "Jumbo Kaasstengels 100g",
+                quantity: "100g",
+                prices: JumboProduct.Prices(price: JumboProduct.Prices.Price(amount: 299, unitSize: "100g")),
+                imageInfo: nil,
+                available: true
+            ),
+            JumboProduct(
+                id: "2",
+                title: "AH Kaasstengels 150g",
+                quantity: "150g",
+                prices: JumboProduct.Prices(price: JumboProduct.Prices.Price(amount: 349, unitSize: "150g")),
+                imageInfo: nil,
+                available: true
+            )
+        ]
     }
 }
 

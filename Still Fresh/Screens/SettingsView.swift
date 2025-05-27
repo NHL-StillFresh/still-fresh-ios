@@ -17,6 +17,7 @@ struct SettingsView: View {
     @State private var showEditProfile = false
     @State private var showErrorMessage = false
     @State private var alertType: AlertType = .error
+    @State private var showCheckProductsView = false
     
     private let tealColor = Color(red: 122/255, green: 190/255, blue: 203/255)
     private let units = ["Days", "Weeks"]
@@ -62,6 +63,9 @@ struct SettingsView: View {
                         }
                         .sheet(isPresented: $showEditProfile) {
                             ProfileEditView(username: $username, email: $email)
+                        }
+                        .sheet(isPresented: $showCheckProductsView) {
+                            CheckProductsView(productLines: ["Jumbo Cola", "Kaasstengels", "Pepsi", "Albert Heijn Milk", "Test Product"])
                         }
                     }
                     .padding(.vertical, 6)
@@ -201,6 +205,18 @@ struct SettingsView: View {
                             Spacer()
                             Text("Check Loader (DEBUG ONLY)")
                                 .foregroundColor(.red)
+                                .font(.system(size: 16, weight: .medium))
+                            Spacer()
+                        }
+                    }
+                    
+                    Button(action: {
+                        showCheckProductsView = true
+                    }) {
+                        HStack {
+                            Spacer()
+                            Text("Test CheckProductsView (DEBUG ONLY)")
+                                .foregroundColor(.blue)
                                 .font(.system(size: 16, weight: .medium))
                             Spacer()
                         }
