@@ -11,16 +11,8 @@ struct ContentView: View {
     var body: some View {
         NavigationView {
             VStack {
-                NavigationLink(destination: TestSearchView()) {
-                    Text("Open Test Search")
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                }
+                Text("Open Test Search")
             }
-            .padding()
-            .navigationTitle("Test Menu")
         }
     }
 }

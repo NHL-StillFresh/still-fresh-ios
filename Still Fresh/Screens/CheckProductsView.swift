@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Foundation
+import Supabase
 
 enum ProductKnownStatus: CaseIterable {
     case known, unknown
@@ -41,8 +42,9 @@ struct CheckProductsView: View {
                             let color: Color = productLinesWithStatus[key] == .unknown ? Color.red : Color.green
                             
                             if (productLinesWithStatus[key] == .unknown) {
+                                let productName = key
                                 NavigationLink(
-                                    destination: Text(key)
+                                    destination: ProductSearchDestination(productName: productName)
                                 ) {
                                     SettingRow(icon: icon, iconColor: color, title: key)
                                 }
