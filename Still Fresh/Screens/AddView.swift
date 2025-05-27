@@ -12,7 +12,6 @@ struct AddView: View {
     @State private var selectedOption: AddOption?
     @State private var appearAnimation = false
     
-    // Add states for receipt scanning
     @State private var productLines: [String] = []
     @State private var showCamera = false
     @State private var isProcessing = false
@@ -61,12 +60,6 @@ struct AddView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Drag indicator
-            RoundedRectangle(cornerRadius: 2.5)
-                .fill(Color.gray.opacity(0.3))
-                .frame(width: 36, height: 5)
-                .padding(.top, 8)
-                .padding(.bottom, 12)
             
             // Title
             Text("Toevoegen")
@@ -74,6 +67,7 @@ struct AddView: View {
                 .fontWeight(.bold)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 24)
+                .padding(.top, 12)
                 .padding(.bottom, 12)
             
             // Options - Using VStack with reduced spacing
@@ -94,22 +88,21 @@ struct AddView: View {
             
             Spacer(minLength: 0)
         }
+        .frame(height: 310)
+        .padding(.top, 24)
         .background(
-            // This makes the edges rounded and adds a background
             RoundedRectangle(cornerRadius: 24)
                 .fill(Color(UIColor.systemBackground))
                 .ignoresSafeArea(edges: .bottom)
                 .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: -5)
         )
         .onAppear {
-            // Animate options appearing
             withAnimation {
                 appearAnimation = true
             }
         }
         .onChange(of: selectedOption) { oldValue, newValue in
             if newValue != nil {
-                // Immediately handle selection without delay
                 handleOptionSelection(newValue!)
             }
         }
