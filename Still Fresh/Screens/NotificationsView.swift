@@ -792,38 +792,49 @@ struct AlertDetailView: View {
     
     // MARK: - Quick Actions Section
     private var quickActionsSection: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
             Text("Quick Actions")
                 .font(.system(size: 18, weight: .semibold))
                 .frame(maxWidth: .infinity, alignment: .leading)
             
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 12) {
-                QuickActionButton(
-                    icon: "bell.slash.fill",
-                    title: "Mark as Read",
-                    color: .gray
-                )
+            VStack(spacing: 12) {
+                // Primary actions row
+                HStack(spacing: 12) {
+                    QuickActionButton(
+                        icon: "bell.slash.fill",
+                        title: "Mark as Read",
+                        subtitle: "Dismiss notification",
+                        color: .gray,
+                        isPrimary: true
+                    )
+                    
+                    QuickActionButton(
+                        icon: "clock.fill",
+                        title: "Snooze",
+                        subtitle: "Remind later",
+                        color: .orange,
+                        isPrimary: true
+                    )
+                }
                 
-                QuickActionButton(
-                    icon: "clock.fill",
-                    title: "Snooze",
-                    color: .orange
-                )
-                
-                QuickActionButton(
-                    icon: "square.and.arrow.up",
-                    title: "Share",
-                    color: .blue
-                )
-                
-                QuickActionButton(
-                    icon: "trash.fill",
-                    title: "Delete",
-                    color: .red
-                )
+                // Secondary actions row
+                HStack(spacing: 12) {
+                    QuickActionButton(
+                        icon: "square.and.arrow.up",
+                        title: "Share",
+                        subtitle: "Send to friends",
+                        color: .blue,
+                        isPrimary: false
+                    )
+                    
+                    QuickActionButton(
+                        icon: "trash.fill",
+                        title: "Delete",
+                        subtitle: "Remove forever",
+                        color: .red,
+                        isPrimary: false
+                    )
+                }
             }
         }
     }
@@ -832,7 +843,7 @@ struct AlertDetailView: View {
     private func getPrimaryActionText() -> String {
         switch alertType {
         case .expiry:
-            return "Mark as Used"
+            return "Mark as Read"
         case .stock:
             return "Add to Shopping List"
         case .tips:
@@ -1035,27 +1046,63 @@ struct InsightRow: View {
 struct QuickActionButton: View {
     let icon: String
     let title: String
+    let subtitle: String
     let color: Color
+    let isPrimary: Bool
+    @State private var isPressed = false
     
     var body: some View {
         Button(action: {}) {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(color)
+            VStack(spacing: 12) {
+                // Icon container with colored background
+                ZStack {
+                    Circle()
+                        .fill(color.opacity(isPrimary ? 0.15 : 0.1))
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(color)
+                }
                 
-                Text(title)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.secondary)
+                // Text content
+                VStack(spacing: 4) {
+                    Text(title)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.primary)
+                    
+                    Text(subtitle)
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 60)
+            .frame(height: isPrimary ? 110 : 98)
+            .padding(.vertical, 16)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.systemGray6))
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.systemBackground))
+                    .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+                    .shadow(color: Color.black.opacity(0.03), radius: 1, x: 0, y: 1)
             )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(color.opacity(isPrimary ? 0.2 : 0.1), lineWidth: 1)
+            )
+            .scaleEffect(isPressed ? 0.95 : 1.0)
+            .animation(.easeOut(duration: 0.15), value: isPressed)
         }
         .buttonStyle(PlainButtonStyle())
+        .pressEvents {
+            withAnimation(.easeOut(duration: 0.1)) {
+                isPressed = true
+            }
+        } onRelease: {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                isPressed = false
+            }
+        }
     }
 }
 
