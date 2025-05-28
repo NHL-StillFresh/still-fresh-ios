@@ -4,111 +4,279 @@ struct ExpiringItemsCarouselView: View {
     let items: [FoodItem]
     var onSeeAllTapped: () -> Void
     
-    @State private var currentPage = 0
-    @State private var dragOffset: CGFloat = 0
-    @State private var scrollOffset: CGFloat = 0
-    @State private var isUserScrolling = false
+    // Sort items by expiry date (most urgent first)
+    private var sortedItems: [FoodItem] {
+        items.sorted { $0.daysUntilExpiry < $1.daysUntilExpiry }
+    }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Header with "See All" button
+        VStack(alignment: .leading, spacing: 20) {
+            // Header
             HStack {
-                Text("Use it or lose it")
-                    .font(.system(size: 21))
-                    .padding(.bottom, 8)
-                    .fontWeight(.bold)
+                Text("Use It or Lose It")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundColor(.primary)
                 
                 Spacer()
                 
                 Button(action: onSeeAllTapped) {
                     Text("See all")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(Color(red: 122/255, green: 190/255, blue: 203/255))
-                        .padding(.bottom, 8)
+                        .foregroundColor(Color(red: 0.04, green: 0.29, blue: 0.29))
                 }
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 20)
             
             if items.isEmpty {
-                // Empty state
-                VStack {
-                    Text("No expiring items")
-                        .font(.system(size: 16))
-                        .foregroundColor(.secondary)
-                    Text("Add items to track their expiry dates")
-                        .font(.system(size: 14))
+                // Clean empty state
+                VStack(spacing: 16) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 48))
+                        .foregroundColor(Color(red: 0.04, green: 0.29, blue: 0.29))
+                    
+                    Text("All items are fresh!")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.primary)
+                    
+                    Text("No items expiring soon")
+                        .font(.system(size: 15))
                         .foregroundColor(.secondary)
                 }
-                .frame(height: 250) // Match reduced card height
                 .frame(maxWidth: .infinity)
+                .padding(.vertical, 40)
             } else {
-                // Scrollable carousel of food items
-                GeometryReader { outerGeometry in
-                    let cardWidth = UIScreen.main.bounds.width * 0.6
-                    let cardSpacing: CGFloat = 16
-                    let leftEdgePadding: CGFloat = 16
+                // Clean list of items
+                VStack(spacing: 12) {
+                    ForEach(sortedItems.prefix(5)) { item in
+                        ModernFoodItemRow(item: item)
+                    }
                     
-                    ZStack(alignment: .leading) {
-                        // Main horizontal scroll content
-                        HStack(spacing: cardSpacing) {
-                            ForEach(0..<items.count, id: \.self) { index in
-                                FoodItemCardView(item: items[index])
+                    // Show more items indicator if there are more than 5
+                    if sortedItems.count > 5 {
+                        Button(action: onSeeAllTapped) {
+                            HStack {
+                                Text("View \(sortedItems.count - 5) more items")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(Color(red: 0.04, green: 0.29, blue: 0.29))
+                                
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(Color(red: 0.04, green: 0.29, blue: 0.29))
                             }
+                            .padding(.vertical, 16)
+                            .frame(maxWidth: .infinity)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(Color(red: 0.04, green: 0.29, blue: 0.29).opacity(0.05))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .stroke(Color(red: 0.04, green: 0.29, blue: 0.29).opacity(0.2), lineWidth: 1)
+                                    )
+                            )
                         }
-                        .offset(x: leftEdgePadding + scrollOffset + dragOffset)
-                        .gesture(
-                            DragGesture()
-                                .onChanged { value in
-                                    isUserScrolling = true
-                                    dragOffset = value.translation.width
-                                }
-                                .onEnded { value in
-                                    isUserScrolling = false
-                                    // Update scrollOffset to include the drag
-                                    scrollOffset += dragOffset
-                                    dragOffset = 0
-                                    
-                                    // Calculate which card should be visible
-                                    let cardTotalWidth = cardWidth + cardSpacing
-                                    
-                                    // Calculate the velocity and determine next page
-                                    let velocity = value.predictedEndTranslation.width - value.translation.width
-                                    let velocityThreshold: CGFloat = 200
-                                    
-                                    if abs(velocity) > velocityThreshold {
-                                        // Swipe with velocity - go to next or previous page based on velocity direction
-                                        if velocity < 0 && currentPage < items.count - 1 {
-                                            currentPage += 1
-                                        } else if velocity > 0 && currentPage > 0 {
-                                            currentPage -= 1
-                                        }
-                                    } else {
-                                        // Swipe without much velocity - calculate nearest page
-                                        let offsetInCardWidths = -scrollOffset / cardTotalWidth
-                                        let nearestPage = Int(round(offsetInCardWidths))
-                                        currentPage = max(0, min(items.count - 1, nearestPage))
-                                    }
-                                    
-                                    // Calculate final position for the selected card to be fully visible
-                                    let newOffset = -CGFloat(currentPage) * cardTotalWidth
-                                    
-                                    // Animate to the final position
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                        scrollOffset = newOffset
-                                    }
-                                }
-                        )
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
                     }
                 }
-                .frame(height: 250) // Reduced to match new card height
             }
         }
     }
 }
 
+struct ModernFoodItemRow: View {
+    let item: FoodItem
+    @State private var isPressed = false
+    
+    // Map food items to SF Symbols
+    private var symbolName: String {
+        switch item.name.lowercased() {
+        case let name where name.contains("milk"):
+            return "drop.fill"
+        case let name where name.contains("chicken"):
+            return "bird.fill"
+        case let name where name.contains("spinach") || name.contains("veggie"):
+            return "leaf.fill"
+        case let name where name.contains("yogurt"):
+            return "cup.and.saucer.fill"
+        default:
+            return "fork.knife"
+        }
+    }
+    
+    // Icon color based on food type
+    private var iconColor: Color {
+        switch item.name.lowercased() {
+        case let name where name.contains("milk") || name.contains("yogurt"):
+            return Color.blue
+        case let name where name.contains("chicken"):
+            return Color.orange
+        case let name where name.contains("spinach") || name.contains("veggie"):
+            return Color.green
+        default:
+            return Color(red: 0.04, green: 0.29, blue: 0.29)
+        }
+    }
+    
+    // Urgency color based on days until expiry - more subtle styling
+    private var urgencyColor: Color {
+        switch item.daysUntilExpiry {
+        case 0:
+            return Color.red.opacity(0.8)
+        case 1:
+            return Color.orange.opacity(0.8)
+        case 2...3:
+            return Color.yellow.opacity(0.8)
+        default:
+            return Color(red: 122/255, green: 190/255, blue: 203/255).opacity(0.8)
+        }
+    }
+    
+    // Background color for badges - subtle and consistent with app design
+    private var urgencyBackgroundColor: Color {
+        switch item.daysUntilExpiry {
+        case 0:
+            return Color.red.opacity(0.15)
+        case 1:
+            return Color.orange.opacity(0.15)
+        case 2...3:
+            return Color.yellow.opacity(0.15)
+        default:
+            return Color(red: 122/255, green: 190/255, blue: 203/255).opacity(0.15)
+        }
+    }
+    
+    // Text color for badges
+    private var urgencyTextColor: Color {
+        switch item.daysUntilExpiry {
+        case 0:
+            return Color.red
+        case 1:
+            return Color.orange
+        case 2...3:
+            return Color.yellow.opacity(0.8)
+        default:
+            return Color(red: 122/255, green: 190/255, blue: 203/255)
+        }
+    }
+    
+    // Short expiry text for badge
+    private var shortExpiryText: String {
+        switch item.daysUntilExpiry {
+        case 0:
+            return "Today"
+        case 1:
+            return "Tomorrow"
+        default:
+            return "\(item.daysUntilExpiry)d"
+        }
+    }
+    
+    // Format date
+    private var formattedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM dd"
+        return formatter.string(from: item.expiryDate)
+    }
+    
+    var body: some View {
+        Button(action: {
+            // TODO: Navigate to item details
+        }) {
+            HStack(spacing: 16) {
+                // Food icon
+                ZStack {
+                    Circle()
+                        .fill(iconColor.opacity(0.12))
+                        .frame(width: 48, height: 48)
+                    
+                    Image(systemName: symbolName)
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(iconColor)
+                }
+                
+                // Item info
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(item.name)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    HStack(spacing: 8) {
+                        Text(item.store)
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+                        
+                        Circle()
+                            .fill(Color.secondary)
+                            .frame(width: 2, height: 2)
+                        
+                        Text(formattedDate)
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                Spacer()
+                
+                // Expiry badge
+                Text(shortExpiryText)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(urgencyTextColor)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(urgencyBackgroundColor)
+                            .overlay(
+                                Capsule()
+                                    .stroke(urgencyColor, lineWidth: 0.5)
+                            )
+                    )
+                    .shadow(color: urgencyColor.opacity(0.2), radius: 2, x: 0, y: 1)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.systemBackground))
+                    .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 2)
+            )
+            .scaleEffect(isPressed ? 0.98 : 1.0)
+            .animation(.easeOut(duration: 0.1), value: isPressed)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .pressEvents {
+            isPressed = true
+        } onRelease: {
+            isPressed = false
+        }
+        .padding(.horizontal, 20)
+    }
+}
+
+// Custom press gesture extension for better control
+extension View {
+    func pressEvents(onPress: @escaping () -> Void, onRelease: @escaping () -> Void) -> some View {
+        self.simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    onPress()
+                }
+                .onEnded { _ in
+                    onRelease()
+                }
+        )
+    }
+}
+
 #Preview {
-    ExpiringItemsCarouselView(
-        items: FoodItem.sampleItems,
-        onSeeAllTapped: {}
-    )
+    ScrollView {
+        ExpiringItemsCarouselView(
+            items: FoodItem.sampleItems,
+            onSeeAllTapped: {}
+        )
+        .padding(.vertical, 20)
+    }
+    .background(Color(.systemGroupedBackground))
 } 
