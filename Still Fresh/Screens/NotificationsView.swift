@@ -10,125 +10,156 @@ struct NotificationsView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Content
-            ZStack {
-                Color(UIColor.systemBackground).edgesIgnoringSafeArea(.all)
-                
-                VStack(alignment: .leading, spacing: 0) {
-                    // Filter Selector
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(NotificationFilter.allCases, id: \.self) { filter in
-                                FilterButton(
-                                    title: filter.title,
-                                    isSelected: selectedFilter == filter,
-                                    action: {
-                                        selectedFilter = filter
-                                    }
-                                )
+            // Filter Selector
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(NotificationFilter.allCases, id: \.self) { filter in
+                        FilterButton(
+                            title: filter.title,
+                            isSelected: selectedFilter == filter,
+                            action: {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    selectedFilter = filter
+                                }
                             }
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 20)
+                        )
                     }
-                    
-                    // Alerts List
-                    ScrollView {
-                        VStack(spacing: 24) {
-                            // Expiry Alerts
-                            if selectedFilter == .all || selectedFilter == .expiry {
-                                if !expiryAlerts.isEmpty {
-                                    AlertSectionView(
-                                        title: "EXPIRATION ALERTS",
-                                        alerts: expiryAlerts,
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+            }
+            .background(Color(.systemBackground))
+            
+            // Content
+            if hasAnyAlerts {
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        // Expiry Alerts
+                        if selectedFilter == .all || selectedFilter == .expiry {
+                            if !expiryAlerts.isEmpty {
+                                ForEach(expiryAlerts, id: \.id) { alert in
+                                    ModernNotificationCard(
+                                        alert: alert,
                                         icon: "exclamationmark.triangle.fill",
                                         iconColor: .red
                                     )
                                 }
                             }
-                            
-                            // Low Stock Alerts
-                            if selectedFilter == .all || selectedFilter == .stock {
-                                if !stockAlerts.isEmpty {
-                                    AlertSectionView(
-                                        title: "LOW STOCK ALERTS",
-                                        alerts: stockAlerts,
-                                        icon: "bag.fill", 
+                        }
+                        
+                        // Low Stock Alerts
+                        if selectedFilter == .all || selectedFilter == .stock {
+                            if !stockAlerts.isEmpty {
+                                ForEach(stockAlerts, id: \.id) { alert in
+                                    ModernNotificationCard(
+                                        alert: alert,
+                                        icon: "bag.fill",
                                         iconColor: .orange
                                     )
                                 }
                             }
-                            
-                            // Tips
-                            if selectedFilter == .all || selectedFilter == .tips {
-                                if !tipAlerts.isEmpty {
-                                    AlertSectionView(
-                                        title: "TIPS & ANNOUNCEMENTS",
-                                        alerts: tipAlerts,
+                        }
+                        
+                        // Tips
+                        if selectedFilter == .all || selectedFilter == .tips {
+                            if !tipAlerts.isEmpty {
+                                ForEach(tipAlerts, id: \.id) { alert in
+                                    ModernNotificationCard(
+                                        alert: alert,
                                         icon: "lightbulb.fill",
                                         iconColor: .yellow
                                     )
                                 }
                             }
-                            
-                            // App Updates
-                            if selectedFilter == .all || selectedFilter == .updates {
-                                if !updateAlerts.isEmpty {
-                                    AlertSectionView(
-                                        title: "APP UPDATES",
-                                        alerts: updateAlerts,
+                        }
+                        
+                        // App Updates
+                        if selectedFilter == .all || selectedFilter == .updates {
+                            if !updateAlerts.isEmpty {
+                                ForEach(updateAlerts, id: \.id) { alert in
+                                    ModernNotificationCard(
+                                        alert: alert,
                                         icon: "bell.fill",
                                         iconColor: lightTealColor
                                     )
                                 }
                             }
-                            
-                            // Show empty state if no alerts match the filter
-                            if (selectedFilter == .expiry && expiryAlerts.isEmpty) ||
-                               (selectedFilter == .stock && stockAlerts.isEmpty) ||
-                               (selectedFilter == .tips && tipAlerts.isEmpty) ||
-                               (selectedFilter == .updates && updateAlerts.isEmpty) {
-                                VStack(spacing: 16) {
-                                    Image(systemName: "bell.slash")
-                                        .font(.system(size: 48))
-                                        .foregroundColor(lightTealColor.opacity(0.6))
-                                        .padding(.top, 60)
-                                    
-                                    Text("No \(selectedFilter.title) alerts")
-                                        .font(.system(size: 18, weight: .medium))
-                                        .foregroundColor(tealColor)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.top, 40)
-                            }
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 20)
+                        
+                        // Bottom padding to account for tab bar
+                        Color.clear.frame(height: 80)
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
                 }
+            } else {
+                // Empty state
+                VStack(spacing: 24) {
+                    Spacer()
+                    
+                    Image(systemName: "bell.slash")
+                        .font(.system(size: 50))
+                        .foregroundColor(lightTealColor.opacity(0.6))
+                    
+                    VStack(spacing: 8) {
+                        Text("No notifications")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundColor(.primary)
+                        
+                        Text("You're all caught up! Check back later for updates.")
+                            .font(.system(size: 16))
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+                    }
+                    
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+        }
+    }
+    
+    // Computed property to check if we have alerts based on current filter
+    private var hasAnyAlerts: Bool {
+        switch selectedFilter {
+        case .all:
+            return !expiryAlerts.isEmpty || !stockAlerts.isEmpty || !tipAlerts.isEmpty || !updateAlerts.isEmpty
+        case .expiry:
+            return !expiryAlerts.isEmpty
+        case .stock:
+            return !stockAlerts.isEmpty
+        case .tips:
+            return !tipAlerts.isEmpty
+        case .updates:
+            return !updateAlerts.isEmpty
         }
     }
     
     // Sample data
     var expiryAlerts: [AlertItem] = [
-        AlertItem(id: 1, title: "Milk expires tomorrow", message: "Your milk will expire in 1 day", timeAgo: "4h ago", isRead: false),
-        AlertItem(id: 2, title: "Spinach expires today", message: "Your spinach expires today", timeAgo: "1d ago", isRead: true),
-        AlertItem(id: 3, title: "Tomatoes expiring soon", message: "Your tomatoes will expire in 2 days", timeAgo: "2d ago", isRead: true)
+        AlertItem(id: 1, title: "🥛 Milk expires today!", message: "Your organic milk expires today. Use it in a smoothie or cereal before it goes bad.", timeAgo: "2h ago", isRead: false),
+        AlertItem(id: 2, title: "🥬 Spinach expires tomorrow", message: "Fresh spinach will expire in 1 day. Perfect time to make a healthy salad or green smoothie.", timeAgo: "4h ago", isRead: false),
+        AlertItem(id: 3, title: "🍅 Cherry tomatoes expiring soon", message: "Your cherry tomatoes will expire in 2 days. Great for pasta or a caprese salad!", timeAgo: "1d ago", isRead: true),
+        AlertItem(id: 4, title: "🧀 Cheddar cheese expires in 3 days", message: "Time to use that cheddar! Perfect for grilled cheese or mac and cheese.", timeAgo: "1d ago", isRead: true)
     ]
     
     var stockAlerts: [AlertItem] = [
-        AlertItem(id: 4, title: "Low on milk", message: "You only have 1 carton left", timeAgo: "6h ago", isRead: false),
-        AlertItem(id: 5, title: "Low on eggs", message: "You only have 2 eggs left", timeAgo: "1d ago", isRead: true)
+        AlertItem(id: 5, title: "🥛 Running low on milk", message: "You only have 1 carton left. Don't forget to add it to your shopping list!", timeAgo: "6h ago", isRead: false),
+        AlertItem(id: 6, title: "🥚 Almost out of eggs", message: "Only 3 eggs remaining. Time to restock for your weekend breakfast!", timeAgo: "8h ago", isRead: false),
+        AlertItem(id: 7, title: "🍞 Bread supply is low", message: "You're down to your last few slices. Perfect time to grab a fresh loaf.", timeAgo: "1d ago", isRead: true)
     ]
     
     var tipAlerts: [AlertItem] = [
-        AlertItem(id: 6, title: "Weekly meal prep tip", message: "Freezing herbs in olive oil helps preserve freshness", timeAgo: "12h ago", isRead: false),
-        AlertItem(id: 7, title: "Weekly food saving tip", message: "Store avocados with apples to speed up ripening", timeAgo: "1w ago", isRead: true)
+        AlertItem(id: 8, title: "💡 Smart Storage Tip", message: "Store your bananas separately from other fruits to prevent them from ripening too quickly. This extends freshness by 2-3 days!", timeAgo: "3h ago", isRead: false),
+        AlertItem(id: 9, title: "🧊 Freezer Hack Discovered", message: "Did you know? You can freeze fresh herbs in olive oil ice cube trays. They'll last 6 months and add instant flavor to dishes!", timeAgo: "1d ago", isRead: false),
+        AlertItem(id: 10, title: "📱 AI Insight", message: "Based on your shopping patterns, you typically buy milk every 4 days. Consider buying organic milk which lasts longer.", timeAgo: "2d ago", isRead: true),
+        AlertItem(id: 11, title: "🌱 Sustainability Tip", message: "You've prevented 2.3 lbs of food waste this month! Keep it up - every bit helps the environment.", timeAgo: "3d ago", isRead: true)
     ]
     
     var updateAlerts: [AlertItem] = [
-        AlertItem(id: 8, title: "App updated to v1.2", message: "New features: improved food recognition and barcode scanning", timeAgo: "3d ago", isRead: true)
+        AlertItem(id: 12, title: "✨ New AI Features Available", message: "Enhanced barcode scanning with 99.2% accuracy and smart expiry predictions are now live!", timeAgo: "2d ago", isRead: false),
+        AlertItem(id: 13, title: "📊 Weekly Report Ready", message: "Your personalized food waste report is ready! See how much you've saved and discover new tips.", timeAgo: "1w ago", isRead: true)
     ]
 }
 
@@ -160,7 +191,7 @@ struct AlertItem {
     let isRead: Bool
 }
 
-// Filter Button Component
+// Modern Filter Button Component
 struct FilterButton: View {
     let title: String
     let isSelected: Bool
@@ -174,98 +205,100 @@ struct FilterButton: View {
                 .padding(.horizontal, 18)
                 .padding(.vertical, 10)
                 .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(isSelected ? Color(red: 0.04, green: 0.29, blue: 0.29) : Color(UIColor.systemGray6))
+                    Capsule()
+                        .fill(isSelected ? Color(red: 0.04, green: 0.29, blue: 0.29) : Color(.systemGray6))
                 )
         }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
-// Alert Section View
-struct AlertSectionView: View {
-    let title: String
-    let alerts: [AlertItem]
+// Modern Notification Card
+struct ModernNotificationCard: View {
+    let alert: AlertItem
     let icon: String
     let iconColor: Color
+    @State private var isPressed = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(title)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(Color(red: 0.04, green: 0.29, blue: 0.29))
-                .padding(.leading, 4)
-                .padding(.top, 4)
-            
-            VStack(spacing: 16) {
-                ForEach(alerts, id: \.id) { alert in
-                    NotificationCell(
-                        icon: icon,
-                        iconColor: iconColor,
-                        title: alert.title,
-                        message: alert.message,
-                        timeAgo: alert.timeAgo,
-                        isRead: alert.isRead
-                    )
+        Button(action: {
+            // Handle notification tap
+        }) {
+            HStack(spacing: 16) {
+                // Icon with circular background
+                ZStack {
+                    Circle()
+                        .fill(iconColor.opacity(0.15))
+                        .frame(width: 48, height: 48)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(iconColor)
                 }
+                
+                // Content
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text(alert.title)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(alert.isRead ? .secondary : .primary)
+                            .lineLimit(1)
+                        
+                        Spacer()
+                        
+                        Text(alert.timeAgo)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Text(alert.message)
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+                
+                // Unread indicator
+                VStack {
+                    if !alert.isRead {
+                        Circle()
+                            .fill(Color(red: 122/255, green: 190/255, blue: 203/255))
+                            .frame(width: 8, height: 8)
+                    }
+                    Spacer()
+                }
+                .frame(height: 48)
             }
-            .padding(.vertical, 12)
-            .background(Color(UIColor.secondarySystemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.systemBackground))
+                    .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 2)
+            )
+            .scaleEffect(isPressed ? 0.98 : 1.0)
+            .animation(.easeOut(duration: 0.1), value: isPressed)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .pressEvents {
+            isPressed = true
+        } onRelease: {
+            isPressed = false
         }
     }
 }
 
-// Notification Cell View
-struct NotificationCell: View {
-    let icon: String
-    let iconColor: Color
-    let title: String
-    let message: String
-    let timeAgo: String
-    let isRead: Bool
-    
-    var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            // Icon
-            Image(systemName: icon)
-                .foregroundColor(.white)
-                .font(.system(size: 14))
-                .frame(width: 32, height: 32)
-                .background(iconColor)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-            
-            VStack(alignment: .leading, spacing: 6) {
-                // Title
-                Text(title)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(isRead ? .secondary : .primary)
-                
-                // Message
-                Text(message)
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-                    .lineLimit(2)
-                
-                // Time
-                Text(timeAgo)
-                    .font(.system(size: 12))
-                    .foregroundColor(.gray)
-                    .padding(.top, 4)
-            }
-            
-            Spacer()
-            
-            // Unread indicator
-            if !isRead {
-                Circle()
-                    .fill(Color(red: 122/255, green: 190/255, blue: 203/255))
-                    .frame(width: 10, height: 10)
-                    .padding(.top, 4)
-            }
-        }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 16)
+// Custom press gesture extension for better control
+extension View {
+    func pressEvents(onPress: @escaping () -> Void, onRelease: @escaping () -> Void) -> some View {
+        self.simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    onPress()
+                }
+                .onEnded { _ in
+                    onRelease()
+                }
+        )
     }
 }
 
