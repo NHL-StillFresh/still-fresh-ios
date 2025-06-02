@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct RecentSearchesHandler {
+class RecentSearchesHandler : ObservableObject {
     @AppStorage("recentSearches") private var recentSearchesData: String = "[]"
     
     public func getRecentSearches() -> [String] {

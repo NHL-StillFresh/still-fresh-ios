@@ -1,8 +1,7 @@
 import SwiftUI
 
 struct SearchView: View {
-    private var recentSearchesHandler = RecentSearchesHandler()
-    
+    @StateObject private var recentSearchesHandler = RecentSearchesHandler()
     @State private var searchText = ""
     @State private var isSearching = false
     @State private var selectedCategory: FoodCategory? = nil
@@ -13,6 +12,7 @@ struct SearchView: View {
     
     @State private var showAddView = false
     @State private var sheetHeight : PresentationDetent = .height(320)
+    
     
     var body: some View {
         NavigationView {
@@ -103,14 +103,18 @@ struct SearchView: View {
     }
     
     private var recentSearchesSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let recentSearches = recentSearchesHandler.getRecentSearches()
+
+        return VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Recent Searches")
                     .font(.headline)
                 
                 Spacer()
                 
-                Button(action: { recentSearchesHandler.setRecentSearches([]) }) {
+                Button(action: { recentSearchesHandler.setRecentSearches([]);
+                    
+                }) {
                     Text("Clear")
                         .font(.subheadline)
                         .foregroundColor(Color(UIColor.systemTeal))
@@ -119,7 +123,7 @@ struct SearchView: View {
             .padding(.horizontal, 16)
             
             VStack(spacing: 0) {
-                let recentSearches = recentSearchesHandler.getRecentSearches()
+                                
                 ForEach(recentSearches, id: \.self) { search in
                     Button(action: {
                         searchText = search
