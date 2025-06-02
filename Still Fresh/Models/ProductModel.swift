@@ -11,7 +11,7 @@ struct ProductModel: Decodable {
     let product_code: String?
     let product_expiration_in_days: Int?
     let product_nutritional_value: String?
-    let source_id: String?
+    let source_id: Int?
     let created_at: String?
     let updated_at: String?
     let product_id: String

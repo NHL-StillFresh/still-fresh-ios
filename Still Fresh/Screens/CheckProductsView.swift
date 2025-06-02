@@ -161,17 +161,11 @@ struct CheckProductsView: View {
     }
     
     private func handleAddToBasket() {
-        print("🔵 handleAddToBasket called")
-        print("🔵 selectedProducts count: \(selectedProducts.count)")
-        print("🔵 unknownProducts count: \(unknownProducts.count)")
-        print("🔵 knownProducts count: \(knownProducts.count)")
         
         // Check if all unknown products are verified
         if !unknownProducts.isEmpty && selectedProducts.count < unknownProducts.count {
-            print("🟡 Showing warning alert - not all products verified")
             showWarningAlert = true
         } else {
-            print("🟢 All products verified or no unknown products - proceeding to add")
             addAllSelectedProducts()
         }
     }
@@ -489,7 +483,9 @@ struct CheckProductsView: View {
                         .single()
                         .execute()
                         .value
-                                        
+                    
+                    print("Product receipt name: \(product.product_receipt_name)")
+                    
                     let productKnownName: ProductModel = try await SupaClient
                         .from("products")
                         .select()
@@ -499,9 +495,12 @@ struct CheckProductsView: View {
                         .execute()
                         .value
                     
+                    print("Product Known Name: \(productKnownName.product_name)")
+                    
                     productLinesWithStatus[productKnownName.product_name] = .known
                     
                 } catch {
+                    print("Error: \(error)")
                     productLinesWithStatus[productName] = .unknown
                 }
             }
@@ -511,45 +510,24 @@ struct CheckProductsView: View {
     }
     
     private func addAllSelectedProducts() {
-        print("🚀 addAllSelectedProducts called")
-        print("🚀 selectedProducts: \(selectedProducts)")
-        print("🚀 knownProducts: \(knownProducts)")
-        
         guard !selectedProducts.isEmpty || !knownProducts.isEmpty else { 
-            print("❌ Guard failed - no products to add")
-            return 
+            return
         }
         
-        print("✅ Guard passed - proceeding with database operations")
         isAddingProducts = true
         
         Task {
             do {
-                print("🔐 Starting authentication...")
-                // Try to authenticate first
-                do {
-                    let result = try await SupaClient.auth.signIn(email: "elmedin@test.nl", password: "elmedin123")
-                    print("✅ Authentication successful: \(result)")
-                } catch {
-                    print("❌ Authentication error: \(error.localizedDescription)")
-                }
+                for (_, (originalName, product)) in selectedProducts.enumerated() {
                 
-                print("📦 Starting to add \(selectedProducts.count) products to database")
                 
-                // Add all selected products from unknown products to database
-                for (index, (originalName, product)) in selectedProducts.enumerated() {
-                    print("📝 Processing product \(index + 1)/\(selectedProducts.count): \(originalName) -> \(product.title)")
-                    
-                    // First add the product to products table (like in TestSearchView)
                     let productData: [String: String] = [
                         "product_name": product.title,
                         "product_image": product.imageUrl ?? ""
                     ]
                     
-                    print("📋 Product data to insert: \(productData)")
-                    
+
                     let insertedProduct: ProductModel = try await SupaClient
-                        .database
                         .from("products")
                         .insert(productData)
                         .select()
@@ -557,46 +535,35 @@ struct CheckProductsView: View {
                         .execute()
                         .value
                     
-                    print("✅ Product inserted with ID: \(insertedProduct.product_id)")
-                    
-                    // Then add mapping from receipt name to product_id
-                    let mappingData: [String: String] = [
+                    let productReceiptNameData: [String: String] = [
                         "product_receipt_name": originalName,
                         "product_id": String(insertedProduct.product_id)
                     ]
                     
-                    print("🔗 Mapping data to insert: \(mappingData)")
-                    
                     try await SupaClient
-                        .database
                         .from("product_receipt_names")
-                        .insert(mappingData)
+                        .insert(productReceiptNameData)
                         .execute()
-                    
-                    print("✅ Mapping inserted successfully for: \(originalName)")
                 }
                 
-                print("🎉 Successfully added \(selectedProducts.count) products to database")
                 
                 await MainActor.run {
-                    print("🏁 Updating UI - setting isAddingProducts to false and dismissing")
                     isAddingProducts = false
                     dismiss()
                 }
                 
             } catch {
+                print("Error: \(error)")
+                
                 await MainActor.run {
-                    print("❌ Error occurred, setting isAddingProducts to false")
+                    
                     isAddingProducts = false
                 }
-                print("❌ Error adding products: \(error.localizedDescription)")
-                print("❌ Full error: \(error)")
             }
         }
     }
     
     private func setupForPreview() {
-        // For preview, we'll mark some products as unknown and some as known
         let products = productLines
         for (index, product) in products.enumerated() {
             productLinesWithStatus[product] = index % 3 == 0 ? .known : .unknown
@@ -735,7 +702,6 @@ struct UnknownProductCard: View {
                     
                     Spacer()
                     
-                    // Expand/collapse indicator
                     Image(systemName: "chevron.right")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.secondary)
@@ -747,7 +713,6 @@ struct UnknownProductCard: View {
             .buttonStyle(PlainButtonStyle())
             .background(Color(.systemBackground))
             
-            // Expanded search results
             if isExpanded {
                 VStack(spacing: 0) {
                     Divider()
