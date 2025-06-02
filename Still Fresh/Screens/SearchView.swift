@@ -1,16 +1,18 @@
 import SwiftUI
 
 struct SearchView: View {
+    @StateObject private var recentSearchesHandler = RecentSearchesHandler()
     @State private var searchText = ""
     @State private var isSearching = false
     @State private var selectedCategory: FoodCategory? = nil
     @State private var showFilterSheet = false
     @State private var filters = SearchFilters()
-    @State private var recentSearches: [String] = ["Milk", "Chicken", "Apples", "Bread"]
+
     @State private var searchResults: [FoodItem] = []
     
-    // Demo data for recently added items
-    @State private var recentlyAddedItems = FoodItem.sampleItems
+    @State private var showAddView = false
+    @State private var sheetHeight : PresentationDetent = .height(320)
+    
     
     var body: some View {
         NavigationView {
@@ -26,10 +28,8 @@ struct SearchView: View {
                 .padding(.bottom, 8)
                 
                 if searchText.isEmpty && !isSearching {
-                    // Default content when not searching
                     defaultContent
                 } else {
-                    // Search results
                     searchResultsContent
                 }
             }
@@ -39,8 +39,9 @@ struct SearchView: View {
             }
             .onChange(of: searchText) { _, newValue in
                 if !newValue.isEmpty {
-                    // Simulate search results
-                    searchResults = simulateSearch(query: newValue)
+                    Task {
+                        searchResults = await searchProducts(query: newValue)
+                    }
                 }
             }
         }
@@ -48,18 +49,22 @@ struct SearchView: View {
     
     private var defaultContent: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                // Categories section
+            VStack(alignment: .center, spacing: 24) {
                 categoriesSection
                 
-                // Recent searches section
-                if !recentSearches.isEmpty {
+                if !recentSearchesHandler.getRecentSearches().isEmpty {
                     recentSearchesSection
-                }
-                
-                // Recently added items
-                if !recentlyAddedItems.isEmpty {
-                    recentlyAddedSection
+                } else {
+                    VStack(spacing: 12) {
+                        Spacer()
+                        Image(systemName: "clock")
+                            .font(.system(size: 50))
+                            .foregroundColor(.gray.opacity(0.5))
+                        
+                        Text("No recent items")
+                            .font(.title3)
+                            .fontWeight(.medium)
+                    }
                 }
                 
                 Spacer(minLength: 80)
@@ -83,26 +88,33 @@ struct SearchView: View {
                             onTap: {
                                 selectedCategory = category
                                 // Simulate search for this category
-                                searchResults = simulateSearch(category: category)
-                                isSearching = true
+                                Task {
+                                    searchResults = await  searchProducts(category: category)
+                                    isSearching = true
+                                }
                             }
                         )
                     }
                 }
                 .padding(.horizontal, 16)
+                .frame(height: 100)
             }
         }
     }
     
     private var recentSearchesSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let recentSearches = recentSearchesHandler.getRecentSearches()
+
+        return VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Recent Searches")
                     .font(.headline)
                 
                 Spacer()
                 
-                Button(action: { recentSearches.removeAll() }) {
+                Button(action: { recentSearchesHandler.setRecentSearches([]);
+                    
+                }) {
                     Text("Clear")
                         .font(.subheadline)
                         .foregroundColor(Color(UIColor.systemTeal))
@@ -111,6 +123,7 @@ struct SearchView: View {
             .padding(.horizontal, 16)
             
             VStack(spacing: 0) {
+                                
                 ForEach(recentSearches, id: \.self) { search in
                     Button(action: {
                         searchText = search
@@ -148,37 +161,9 @@ struct SearchView: View {
         }
     }
     
-    private var recentlyAddedSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Recently Added")
-                    .font(.headline)
-                
-                Spacer()
-                
-                Button(action: {
-                    // View all action
-                }) {
-                    Text("View All")
-                        .font(.subheadline)
-                        .foregroundColor(Color(UIColor.systemTeal))
-                }
-            }
-            .padding(.horizontal, 16)
-            
-            LazyVStack(spacing: 12) {
-                ForEach(recentlyAddedItems) { item in
-                    SearchResultItemView(item: item)
-                }
-            }
-            .padding(.horizontal, 16)
-        }
-    }
-    
     private var searchResultsContent: some View {
         VStack(spacing: 0) {
             if searchResults.isEmpty {
-                // Empty search results
                 VStack(spacing: 24) {
                     Spacer()
                     
@@ -197,7 +182,7 @@ struct SearchView: View {
                         .padding(.horizontal, 40)
                     
                     Button(action: {
-                        // Action to add items
+                        showAddView = true
                     }) {
                         Text("Add Food Item")
                             .font(.headline)
@@ -208,6 +193,14 @@ struct SearchView: View {
                             .cornerRadius(12)
                     }
                     .padding(.top, 8)
+                    .sheet(isPresented: $showAddView) {
+                        AddView()
+                            .presentationDetents([sheetHeight], selection: $sheetHeight)
+                            .interactiveDismissDisabled(false)
+                            .presentationDragIndicator(.visible)
+                            .presentationCornerRadius(24)
+                            .presentationCompactAdaptation(.none)
+                    }
                     
                     Spacer()
                 }
@@ -227,12 +220,55 @@ struct SearchView: View {
         }
     }
     
+    private func searchProducts(query: String? = nil , category: FoodCategory? = nil) async -> [FoodItem] {
+        
+        var productsToReturn: [FoodItem] = []
+        
+        do {
+            
+            if let query = query, !query.isEmpty {
+                
+                let products: [ProductModel] = try await SupaClient
+                    .from("products")
+                    .select()
+                    .ilike("product_name", pattern: "%\(query)%")
+                    .limit(15)
+                    .execute()
+                    .value
+                
+                productsToReturn = products.map { product in
+                    let expiryDate = Calendar.current.date(
+                        byAdding: .day,
+                        value: product.product_expiration_in_days ?? 0,
+                        to: Calendar.current.startOfDay(for: Date())
+                    ) ?? Calendar.current.startOfDay(for: Date())
+                    
+                    return FoodItem(
+                        id: UUID(),
+                        name: product.product_name,
+                        store: product.source_id ?? "Unknown",
+                        image: product.product_image ?? "chicken",
+                        expiryDate: expiryDate
+                    )
+                }
+                
+            } else if let category = category {
+                
+            }
+            
+        } catch {
+            print ("Error searching products: \(error)")
+        }
+        
+        return productsToReturn
+    }
+    
     // Simulate search results based on query
     private func simulateSearch(query: String? = nil, category: FoodCategory? = nil) -> [FoodItem] {
         let sampleItems = FoodItem.sampleItems
         
         if let query = query, !query.isEmpty {
-            return sampleItems.filter { 
+            return sampleItems.filter {
                 $0.name.lowercased().contains(query.lowercased()) ||
                 $0.store.lowercased().contains(query.lowercased())
             }
@@ -241,10 +277,7 @@ struct SearchView: View {
             switch category {
             case .dairy:
                 return sampleItems.filter { $0.name.lowercased().contains("milk") || $0.name.lowercased().contains("yogurt") }
-            case .produce:
-                return sampleItems.filter { $0.name.lowercased().contains("spinach") }
-            case .meat:
-                return sampleItems.filter { $0.name.lowercased().contains("chicken") }
+            
             default:
                 return sampleItems
             }
@@ -419,6 +452,7 @@ struct CategoryCard: View {
 
 // Search Result Item View
 struct SearchResultItemView: View {
+    var recentSearchesHandler = RecentSearchesHandler()
     let item: FoodItem
     
     var body: some View {
@@ -457,9 +491,12 @@ struct SearchResultItemView: View {
             
             Spacer()
             
-            // Add to basket button
             Button(action: {
-                // Add to basket functionality
+                var recentSearches = recentSearchesHandler.getRecentSearches()
+                
+                recentSearches.insert(item.name, at: recentSearches.endIndex)
+                
+                RecentSearchesHandler().setRecentSearches(recentSearches)
             }) {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 26))
@@ -474,32 +511,12 @@ struct SearchResultItemView: View {
     
     // Background color based on the item
     private var bgColorForItem: Color {
-        switch item.name.lowercased() {
-        case let name where name.contains("milk") || name.contains("yogurt"):
-            return Color.blue.opacity(0.2)
-        case let name where name.contains("chicken"):
-            return Color.orange.opacity(0.2)
-        case let name where name.contains("spinach") || name.contains("veggie"):
-            return Color.green.opacity(0.2)
-        default:
-            return Color(red: 122/255, green: 190/255, blue: 203/255).opacity(0.2)
-        }
+        return Color(red: 122/255, green: 190/255, blue: 203/255).opacity(0.2)
     }
     
     // Symbol based on food type
     private var symbolNameForItem: String {
-        switch item.name.lowercased() {
-        case let name where name.contains("milk"):
-            return "drop.fill"
-        case let name where name.contains("chicken"):
-            return "bird.fill"
-        case let name where name.contains("spinach") || name.contains("veggie"):
-            return "leaf.fill"
-        case let name where name.contains("yogurt"):
-            return "cup.and.saucer.fill"
-        default:
-            return "fork.knife"
-        }
+        return "fork.knife"
     }
     
     // Color based on days until expiry
@@ -510,31 +527,6 @@ struct SearchResultItemView: View {
             return .orange
         } else {
             return Color(red: 122/255, green: 190/255, blue: 203/255)
-        }
-    }
-}
-
-// Food Categories
-enum FoodCategory: String, CaseIterable {
-    case dairy = "Dairy"
-    case produce = "Produce"
-    case meat = "Meat"
-    case bakery = "Bakery"
-    case frozen = "Frozen"
-    case pantry = "Pantry"
-    
-    var name: String {
-        return self.rawValue
-    }
-    
-    var iconName: String {
-        switch self {
-        case .dairy: return "cup.and.saucer.fill"
-        case .produce: return "leaf.fill"
-        case .meat: return "fork.knife"
-        case .bakery: return "birthday.cake.fill"
-        case .frozen: return "snow"
-        case .pantry: return "cabinet.fill"
         }
     }
 }
