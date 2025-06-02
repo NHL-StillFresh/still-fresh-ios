@@ -34,7 +34,15 @@ class AIHandler {
     }
     
     static func createExpiryDatePrompt(productName: String) -> [[String: Any]] {
-        let prompt = "Guess a realistic expiry date for the following product: \(productName). Only respond with the number of days."
+        let prompt = """
+        You are an expert in supermarket food safety and storage. 
+
+        Guess a realistic number of expiry days for the product "\(productName)", assuming it is bought fresh from a typical supermarket and stored properly in a home fridge or pantry.
+
+        Only respond with the number of days as an integer. Do not include units like "days" or any extra text.
+
+        If the product can vary (e.g., "meat"), choose the most common type (e.g., minced beef).
+        """
 
         return [
             ["role": "user", "content": prompt]

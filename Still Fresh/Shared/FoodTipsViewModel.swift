@@ -157,7 +157,7 @@ class FoodTipsViewModel: ObservableObject {
         let calendar = Calendar.current
         let now = Date()
         guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: now) else { return }
-        var midnight = calendar.startOfDay(for: tomorrow).addingTimeInterval(1)
+        let midnight = calendar.startOfDay(for: tomorrow).addingTimeInterval(1)
         
         let timeInterval = midnight.timeIntervalSince(now)
         refreshTimer = Timer.scheduledTimer(withTimeInterval: timeInterval, repeats: false) { [weak self] _ in
