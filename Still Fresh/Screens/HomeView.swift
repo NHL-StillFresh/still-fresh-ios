@@ -3,7 +3,7 @@ import SwiftUI
 // Import custom AppState
 
 struct HomeView: View {
-    @StateObject private var tipsViewModel = FoodTipsViewModel(apiKey: APIKeys.openRouterAPIKey)
+    @StateObject private var tipsViewModel = FoodTipsViewModel()
     @StateObject private var expiringItemsViewModel = ExpiringItemsViewModel()
     @StateObject private var recipesViewModel = RecipesViewModel()
     
