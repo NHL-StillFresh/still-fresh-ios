@@ -21,7 +21,6 @@ struct SearchView: View {
                 SearchBarView(
                     searchText: $searchText, 
                     isSearching: $isSearching,
-                    onFilterTap: { showFilterSheet = true }
                 )
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -291,7 +290,6 @@ struct SearchView: View {
 struct SearchBarView: View {
     @Binding var searchText: String
     @Binding var isSearching: Bool
-    var onFilterTap: () -> Void
     
     var body: some View {
         HStack {
@@ -330,12 +328,6 @@ struct SearchBarView: View {
                 .padding(.leading, 8)
                 .transition(.move(edge: .trailing))
                 .animation(.default, value: isSearching)
-            } else {
-                Button(action: onFilterTap) {
-                    Image(systemName: "slider.horizontal.3")
-                        .foregroundColor(Color(UIColor.systemTeal))
-                        .padding(.leading, 8)
-                }
             }
         }
     }
@@ -497,6 +489,8 @@ struct SearchResultItemView: View {
                 recentSearches.insert(item.name, at: recentSearches.endIndex)
                 
                 RecentSearchesHandler().setRecentSearches(recentSearches)
+                
+                
             }) {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 26))

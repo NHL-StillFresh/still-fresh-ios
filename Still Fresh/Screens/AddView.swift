@@ -18,6 +18,7 @@ struct AddView: View {
     @State private var scanStatus: ScanStatus = .ready
     @State private var debugText: String = ""
     @State private var showScanResults = false
+    @State private var showAddProductManuallyView = false
     let recognizer = TextRecognizer()
     
     enum ScanStatus {
@@ -90,12 +91,12 @@ struct AddView: View {
         }
         .frame(height: 310)
         .padding(.top, 24)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(Color(UIColor.systemBackground))
-                .ignoresSafeArea(edges: .bottom)
-                .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: -5)
-        )
+//        .background(
+//            RoundedRectangle(cornerRadius: 24)
+//                .fill(Color(UIColor.systemBackground))
+//                .ignoresSafeArea(edges: .bottom)
+//                .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: -5)
+//        )
         .onAppear {
             withAnimation {
                 appearAnimation = true
@@ -106,9 +107,11 @@ struct AddView: View {
                 handleOptionSelection(newValue!)
             }
         }
-
+        .sheet(isPresented: $showAddProductManuallyView, onDismiss: { selectedOption = nil }) {
+            AddProductManuallyView()
+                .presentationDragIndicator(.visible)
+        }
         .sheet(isPresented: $showCamera, onDismiss: {
-            // Reset selectedOption when the camera is dismissed
             selectedOption = nil
         }) {
             ImagePicker(sourceType: .camera) { image in
@@ -164,6 +167,8 @@ struct AddView: View {
             scanStatus = .ready
             debugText = ""
             showCamera = true
+        case .addProduct:
+            showAddProductManuallyView = true
         default:
             dismiss()
         }
