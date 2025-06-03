@@ -37,7 +37,6 @@ struct CheckProductsView: View {
                     ZStack {
                         productListView
                         
-                        // Fixed bottom button
                         VStack {
                             Spacer()
                             addToBasketButton
@@ -460,6 +459,7 @@ struct CheckProductsView: View {
         Task {
             do {
                 let response = try await jumboService.searchProducts(query: productName)
+                
                 await MainActor.run {
                     searchResults[productName] = response.products.data.filter { $0.available }
                 }
@@ -474,35 +474,7 @@ struct CheckProductsView: View {
             showLoading = true
             
             for productName in productLines {
-                do {
-                    let product: ProductReceiptNameModel = try await SupaClient
-                        .from("product_receipt_names")
-                        .select()
-                        .eq("product_receipt_name", value: productName)
-                        .limit(1)
-                        .single()
-                        .execute()
-                        .value
-                    
-                    print("Product receipt name: \(product.product_receipt_name)")
-                    
-                    let productKnownName: ProductModel = try await SupaClient
-                        .from("products")
-                        .select()
-                        .eq("product_id", value: product.product_id)
-                        .limit(1)
-                        .single()
-                        .execute()
-                        .value
-                    
-                    print("Product Known Name: \(productKnownName.product_name)")
-                    
-                    productLinesWithStatus[productKnownName.product_name] = .known
-                    
-                } catch {
-                    print("Error: \(error)")
-                    productLinesWithStatus[productName] = .unknown
-                }
+                productLinesWithStatus[productName] = await ProductSearchHandler.checkSingleProduct(productName: productName)
             }
             
             showLoading = false
@@ -510,66 +482,16 @@ struct CheckProductsView: View {
     }
     
     private func addAllSelectedProducts() {
-        guard !selectedProducts.isEmpty || !knownProducts.isEmpty else { 
-            return
-        }
-        
         isAddingProducts = true
-                
-        Task {
-            do {
-                for (_, (originalName, product)) in selectedProducts.enumerated() {
-                    
-                    do {
-                        try await SupaClient
-                            .from("products")
-                            .select()
-                            .eq("product_name", value: originalName)
-                            .limit(1)
-                            .single()
-                            .execute()
-                    } catch {
-                        let expiryDays = await ExpiryDateGuessModel().fetchExpiryDateFromAPI(productName: product.title)
-
-                        
-                        let productData = InsertProductModel(
-                            product_name: product.title, product_image: product.imageUrl, product_code: nil, product_expiration_in_days: expiryDays, product_nutritional_value: nil, source_id: nil
-                        ) 
-
-                        let insertedProduct: ProductModel = try await SupaClient
-                            .from("products")
-                            .insert(productData)
-                            .select()
-                            .single()
-                            .execute()
-                            .value
-                        
-                        let productReceiptNameData: [String: String] = [
-                            "product_receipt_name": originalName,
-                            "product_id": String(insertedProduct.product_id)
-                        ]
-                        
-                        try await SupaClient
-                            .from("product_receipt_names")
-                            .insert(productReceiptNameData)
-                            .execute()
-                    }
-                }
-                
-                
-                await MainActor.run {
-                    isAddingProducts = false
-                    dismiss()
-                }
-                
-            } catch {
-                print("Error: \(error)")
-                
-                await MainActor.run {
-                    
-                    isAddingProducts = false
-                }
+        
+        Task{
+            let result = await ProductSearchHandler.addAllSelectedProducts(selectedProducts: selectedProducts, knownProducts: knownProducts)
+            
+            if (result) {
+                dismiss()
             }
+            
+            isAddingProducts = false
         }
     }
     
