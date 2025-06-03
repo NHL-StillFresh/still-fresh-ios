@@ -69,3 +69,4 @@ fastlane/test_output
 # secrets.plist
 
 Still Fresh.xcodeproj/project.pbxproj
+Still Fresh/Shared/APIKeys.swift
