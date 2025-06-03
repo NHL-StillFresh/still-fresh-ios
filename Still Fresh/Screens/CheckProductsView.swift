@@ -515,35 +515,45 @@ struct CheckProductsView: View {
         }
         
         isAddingProducts = true
-        
+                
         Task {
             do {
                 for (_, (originalName, product)) in selectedProducts.enumerated() {
-                
-                
-                    let productData: [String: String] = [
-                        "product_name": product.title,
-                        "product_image": product.imageUrl ?? ""
-                    ]
                     
+                    do {
+                        try await SupaClient
+                            .from("products")
+                            .select()
+                            .eq("product_name", value: originalName)
+                            .limit(1)
+                            .single()
+                            .execute()
+                    } catch {
+                        let expiryDays = await ExpiryDateGuessModel().fetchExpiryDateFromAPI(productName: product.title)
 
-                    let insertedProduct: ProductModel = try await SupaClient
-                        .from("products")
-                        .insert(productData)
-                        .select()
-                        .single()
-                        .execute()
-                        .value
-                    
-                    let productReceiptNameData: [String: String] = [
-                        "product_receipt_name": originalName,
-                        "product_id": String(insertedProduct.product_id)
-                    ]
-                    
-                    try await SupaClient
-                        .from("product_receipt_names")
-                        .insert(productReceiptNameData)
-                        .execute()
+                        
+                        let productData = InsertProductModel(
+                            product_name: product.title, product_image: product.imageUrl, product_code: nil, product_expiration_in_days: expiryDays, product_nutritional_value: nil, source_id: nil
+                        ) 
+
+                        let insertedProduct: ProductModel = try await SupaClient
+                            .from("products")
+                            .insert(productData)
+                            .select()
+                            .single()
+                            .execute()
+                            .value
+                        
+                        let productReceiptNameData: [String: String] = [
+                            "product_receipt_name": originalName,
+                            "product_id": String(insertedProduct.product_id)
+                        ]
+                        
+                        try await SupaClient
+                            .from("product_receipt_names")
+                            .insert(productReceiptNameData)
+                            .execute()
+                    }
                 }
                 
                 

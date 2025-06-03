@@ -11,7 +11,7 @@ class AIHandler {
     static let openRouterEndpoint = "https://openrouter.ai/api/v1/chat/completions"
     static let modelName = "mistralai/mistral-small-3.1-24b-instruct:free"
     
-    static func makeFoodTipsPrompt() -> [[String: Any]] {
+    static func createFoodTipsPrompt() -> [[String: Any]] {
         let prompt = """
         You are a helpful assistant that gives short, practical food-saving tips.
 

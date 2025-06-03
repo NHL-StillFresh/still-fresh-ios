@@ -7,31 +7,14 @@
 import SwiftUI
 
 class ExpiryDateGuessModel: ObservableObject {
-    @Published var isLoading: Bool = false
-    @Published var error: String? = nil
-    @Published var expiryDate: String? = nil
-    
-    private let productName: String
     private let apiKey: String = APIKeys.openRouterAPIKey
     
-    init(productName: String) {
-        print("Expiry model")
-        self.productName = productName
-        self.isLoading = true
-        Task {
-            await fetchExpiryDateFromAPI()
-        }
-    }
-    
-    private func fetchExpiryDateFromAPI() async {
-        guard let request = AIHandler.buildOpenRouterRequest(apiKey: apiKey, messages: AIHandler.createExpiryDatePrompt(productName: self.productName)) else {
-            self.error = "Invalid API request"
-            self.isLoading = false
-            return
+    public func fetchExpiryDateFromAPI(productName: String) async -> Int? {
+        guard let request = AIHandler.buildOpenRouterRequest(apiKey: apiKey, messages: AIHandler.createExpiryDatePrompt(productName: productName)) else {
+            print("Invalid API request")
+            return nil
         }
         
-        print(request)
-
         do {
             let (data, _) = try await URLSession.shared.data(for: request)
 
@@ -40,15 +23,13 @@ class ExpiryDateGuessModel: ObservableObject {
                   let firstChoice = choices.first,
                   let message = firstChoice["message"] as? [String: Any],
                   let content = message["content"] as? String else {
-                self.error = "Invalid response format"
-                return
+                print("Invalid response format")
+                return nil
             }
 
-            self.expiryDate = content
+            return Int(content)
         } catch {
-            self.error = "Error fetching data: \(error.localizedDescription)"
+            return nil
         }
-
-        self.isLoading = false
     }
 }

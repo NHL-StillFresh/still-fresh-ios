@@ -49,7 +49,9 @@ class FoodTipsViewModel: ObservableObject {
         guard !isLoading else { return }
         
         if shouldGenerateNewTips() {
-            fetchTipsFromAPI()
+            Task {
+               await fetchTipsFromAPI()
+            }
         }
     }
     
@@ -57,84 +59,42 @@ class FoodTipsViewModel: ObservableObject {
         guard !isLoading else { return }
         isLoading = true
         error = nil
-        fetchTipsFromAPI()
+        Task {
+           await fetchTipsFromAPI()
+        }
     }
     
-    private func fetchTipsFromAPI() {
-        guard let request = AIHandler.buildOpenRouterRequest(apiKey: apiKey, messages: AIHandler.makeFoodTipsPrompt()) else {
+    private func fetchTipsFromAPI() async {
+        guard let request = AIHandler.buildOpenRouterRequest(apiKey: apiKey, messages: AIHandler.createFoodTipsPrompt()) else {
             self.error = "Invalid API request"
             self.isLoading = false
             return
         }
-        
-        let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
-            guard let self = self else { return }
-            DispatchQueue.main.async {
-                self.isLoading = false
-                
-                if let error = error {
-                    self.error = "Network error: \(error.localizedDescription)"
-                    return
-                }
-                
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    self.error = "Invalid response"
-                    return
-                }
-                
-                print("Response status code: \(httpResponse.statusCode)")
-                
-                guard let data = data, !data.isEmpty else {
-                    self.error = "Empty response"
-                    return
-                }
-                
-                if let responseString = String(data: data, encoding: .utf8) {
-                    print("Raw API Response: \(responseString)")
-                }
-                
-                do {
-                    let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-                    
-                    if let choices = jsonResponse?["choices"] as? [[String: Any]],
-                       let firstChoice = choices.first,
-                       let message = firstChoice["message"] as? [String: Any],
-                       let content = message["content"] as? String {
-                        
-                        let tips = self.parseTipsFromResponse(content)
-                        
-                        self.dailyTips = DailyTips(
-                            date: Date(),
-                            tips: tips.map { FoodSavingTip(content: $0) }
-                        )
-                        self.cacheTips()
-                        return
-                    }
-                    
-                    if let error = jsonResponse?["error"] as? [String: Any],
-                       let message = error["message"] as? String {
-                        self.error = "API Error: \(message)"
-                        if self.dailyTips.tips.isEmpty {
-                            self.useFallbackTips()
-                        }
-                        return
-                    }
-                    
-                    self.error = "Could not parse response"
-                    if self.dailyTips.tips.isEmpty {
-                        self.useFallbackTips()
-                    }
-                    
-                } catch {
-                    self.error = "Failed to parse JSON: \(error.localizedDescription)"
-                    if self.dailyTips.tips.isEmpty {
-                        self.useFallbackTips()
-                    }
-                }
+        do {
+            let (data, _) = try await URLSession.shared.data(for: request)
+
+            guard let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let choices = jsonResponse["choices"] as? [[String: Any]],
+                  let firstChoice = choices.first,
+                  let message = firstChoice["message"] as? [String: Any],
+                  let content = message["content"] as? String else {
+                self.error = "Invalid response format"
+                return
             }
+
+            let tips = self.parseTipsFromResponse(content)
+            
+            self.dailyTips = DailyTips(
+                date: Date(),
+                tips: tips.map { FoodSavingTip(content: $0) }
+            )
+            self.cacheTips()
+            return
+        } catch {
+            self.error = "Error fetching data: \(error.localizedDescription)"
         }
-        
-        task.resume()
+
+        self.isLoading = false
     }
     
     private func parseTipsFromResponse(_ response: String) -> [String] {
