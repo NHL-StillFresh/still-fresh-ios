@@ -1,250 +1,65 @@
 import SwiftUI
 import Supabase
 
-struct HouseMember: Identifiable, Codable {
-    var id: String
-    var firstName: String
-    var lastName: String
-    var avatarUrl: String?
-    
-    var fullName: String {
-        return "\(firstName) \(lastName)"
-    }
-}
-
-class HouseDashboardViewModel: ObservableObject {
-    @Published var groupName: String = ""
-    @Published var houseId: String? = nil
-    @Published var members: [HouseMember] = []
-    @Published var isLoading: Bool = true
-    @Published var errorMessage: String? = nil
-    @Published var showJoinGroupView = false
-    @Published var joinGroupId = ""
-    @Published var isJoiningGroup = false
-    @Published var joinSuccess = false
-    
-    private let authEmail = "elmedin@test.nl"
-    private let authPassword = "elmedin123"
-    
-    func loadGroupData() {
-        isLoading = true
-        errorMessage = nil
-        
-        Task {
-            do {
-                // Authenticate with Supabase
-                do {
-                    _ = try await SupaClient.auth.signIn(email: authEmail, password: authPassword)
-                } catch {
-                    await MainActor.run {
-                        errorMessage = "Authentication error: \(error.localizedDescription)"
-                        isLoading = false
-                    }
-                    return
-                }
-                
-                // Get current user ID
-                let session = try await SupaClient.auth.session
-                let userId = session.user.id
-                if userId.uuidString.isEmpty {
-                    await MainActor.run {
-                        errorMessage = "Unable to get current user ID"
-                        isLoading = false
-                    }
-                    return
-                }
-                
-                // 1. First, check if user is part of a house
-                let membershipResponse = try await SupaClient.database
-                    .from("house_membership")
-                    .select("house_id")
-                    .eq("user_id", value: userId)
-                    .execute()
-                
-                // Check if user has any house memberships
-                if membershipResponse.data.isEmpty {
-                    // User is not part of any house yet
-                    await MainActor.run {
-                        self.isLoading = false
-                        self.showJoinGroupView = true
-                    }
-                    return
-                }
-                
-                // Parse the JSON to get the house_id
-                let decoder = JSONDecoder()
-                let memberships = try decoder.decode([MembershipRecord].self, from: membershipResponse.data)
-                
-                guard let firstMembership = memberships.first else {
-                    await MainActor.run {
-                        self.isLoading = false
-                        self.showJoinGroupView = true
-                    }
-                    return
-                }
-                
-                let houseId = firstMembership.house_id!
-                
-                // Skip fetching house details - we don't need them
-                // Just set a placeholder group name
-                let groupName = "My House Group"
-                
-                // 3. Get all members of this house
-                let allMembersResponse = try await SupaClient.database
-                    .from("house_membership")
-                    .select("user_id")
-                    .eq("house_id", value: houseId)
-                    .execute()
-                
-                if allMembersResponse.data.isEmpty {
-                    throw NSError(domain: "HouseDashboard", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to fetch house members"])
-                }
-                
-                let allMemberships = try decoder.decode([MembershipRecord].self, from: allMembersResponse.data)
-                let memberIds = allMemberships.compactMap { $0.user_id }
-                
-                // 4. Get user details for all members
-                var members: [HouseMember] = []
-                
-                for memberId in memberIds {
-                    let userResponse = try await SupaClient.database
-                        .from("profiles")
-                        .select("user_id, profile_first_name, profile_last_name")
-                        .eq("user_id", value: memberId)
-                        .execute()
-                    
-                    if !userResponse.data.isEmpty {
-                        let users = try decoder.decode([UserRecord].self, from: userResponse.data)
-                        if let user = users.first {
-                            let member = HouseMember(
-                                id: user.user_id,
-                                firstName: user.profile_first_name,
-                                lastName: user.profile_last_name,
-                                avatarUrl: nil
-                            )
-                            members.append(member)
-                        }
-                    }
-                }
-                
-                // Update UI
-                await MainActor.run {
-                    self.houseId = houseId
-                    self.groupName = groupName
-                    self.members = members
-                    self.isLoading = false
-                }
-            } catch {
-                print("Error: \(error)")
-                await MainActor.run {
-                    self.errorMessage = "Failed to load group data: \(error.localizedDescription)"
-                    self.isLoading = false
-                }
-            }
-        }
-    }
-    
-    func joinGroup() {
-        guard !joinGroupId.isEmpty else { return }
-        
-        isJoiningGroup = true
-        
-        Task {
-            do {
-                // Authenticate with Supabase if needed
-                let session = try await SupaClient.auth.session
-                if session == nil {
-                    _ = try await SupaClient.auth.signIn(email: authEmail, password: authPassword)
-                }
-                
-                let user = try await SupaClient.auth.user()
-                let userId = user.id
-                if userId.uuidString.isEmpty {
-                    throw NSError(domain: "HouseDashboard", code: 1, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
-                }
-                
-                // Add debug logging
-                print("🔍 Attempting to join house with ID: \(joinGroupId)")
-                
-                // Add membership for the user with the provided house_id
-                print("🏠 Creating membership with house_id: \(joinGroupId)")
-                
-                // Check if the house exists
-                let houseCheckResponse = try await SupaClient.database
-                    .from("houses")
-                    .select("house_id")
-                    .eq("house_id", value: joinGroupId)
-                    .execute()
-                
-                if houseCheckResponse.data.isEmpty {
-                    throw NSError(domain: "HouseDashboard", code: 1, userInfo: [NSLocalizedDescriptionKey: "House not found with ID: \(joinGroupId)"])
-                }
-                // Create the membership record
-                let membershipData: [String: String] = [
-                    "user_id": userId.uuidString,
-                    "house_id": joinGroupId
-                ]
-                
-                _ = try await SupaClient.database
-                    .from("house_membership")
-                    .insert(membershipData)
-                    .execute()
-                
-                // Success - membership created
-                
-                await MainActor.run {
-                    self.isJoiningGroup = false
-                    self.joinSuccess = true
-                    
-                    // Reload data after successful join
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                        self.joinSuccess = false
-                        self.showJoinGroupView = false
-                        self.loadGroupData()
-                    }
-                }
-            } catch {
-                print("Join error: \(error)")
-                await MainActor.run {
-                    self.errorMessage = "Failed to join group: \(error.localizedDescription)"
-                    self.isJoiningGroup = false
-                }
-            }
-        }
-    }
-}
-
-// Data structures for Supabase responses
-struct MembershipRecord: Codable {
-    var user_id: String?
-    var house_id: String?
-}
-
-struct HouseRecord: Codable {
-    var house_id: String
-    var name: String
-}
-
-struct UserRecord: Codable {
-    var user_id: String
-    var profile_first_name: String
-    var profile_last_name: String
-}
-
 struct HouseDashboard: View {
-    @StateObject private var viewModel = HouseDashboardViewModel()
+    @StateObject private var dataManager: HouseDataManager
     private let tealColor = Color(UIColor.systemTeal)
+    
+    init(dataManager: HouseDataManager = HouseDataManager()) {
+        _dataManager = StateObject(wrappedValue: dataManager)
+    }
+    
+    // Sample dropdown menu data
+    private let dropdownItems: [DropdownItem] = [
+        DropdownItem(
+            title: "House Management",
+            icon: "house.fill",
+            items: [
+                DropdownItem(title: "View House Details", icon: "doc.text.fill", items: nil),
+                DropdownItem(title: "Edit House Info", icon: "pencil", items: nil),
+                DropdownItem(title: "House Settings", icon: "gear", items: nil)
+            ]
+        ),
+        DropdownItem(
+            title: "Members",
+            icon: "person.3.fill",
+            items: [
+                DropdownItem(title: "View All Members", icon: "person.2.fill", items: nil),
+                DropdownItem(title: "Invite New Member", icon: "person.badge.plus", items: nil),
+                DropdownItem(title: "Manage Permissions", icon: "lock.fill", items: nil)
+            ]
+        ),
+        DropdownItem(
+            title: "Shopping Lists",
+            icon: "cart.fill",
+            items: [
+                DropdownItem(title: "Current List", icon: "list.bullet", items: nil),
+                DropdownItem(title: "Create New List", icon: "plus.circle", items: nil),
+                DropdownItem(title: "View History", icon: "clock.fill", items: nil)
+            ]
+        ),
+        DropdownItem(
+            title: "Statistics",
+            icon: "chart.bar.fill",
+            items: nil
+        )
+    ]
     
     var body: some View {
         NavigationView {
             ZStack {
-                if viewModel.isLoading {
+                if dataManager.isLoading {
                     loadingView
-                } else if viewModel.showJoinGroupView {
+                } else if dataManager.showJoinGroupView {
                     joinGroupView
                 } else {
                     ScrollView {
                         VStack(spacing: 24) {
+                            // Animated dropdown menu
+                            AnimatedDropdownMenu(title: "House Dashboard Options", items: dropdownItems)
+                                .padding(.horizontal, 16)
+                                .padding(.top, 8)
+                            
                             // Group info card
                             groupInfoCard
                                 .padding(.horizontal, 16)
@@ -263,14 +78,16 @@ struct HouseDashboard: View {
             .navigationTitle("House Dashboard")
             .navigationBarTitleDisplayMode(.large)
             .onAppear {
-                viewModel.loadGroupData()
+                Task {
+                    await dataManager.loadGroupData()
+                }
             }
-            .alert(isPresented: .constant(viewModel.errorMessage != nil)) {
+            .alert(isPresented: .constant(dataManager.errorMessage != nil)) {
                 Alert(
                     title: Text("Error"),
-                    message: Text(viewModel.errorMessage ?? "Unknown error"),
+                    message: Text(dataManager.errorMessage ?? "Unknown error"),
                     dismissButton: .default(Text("OK")) {
-                        viewModel.errorMessage = nil
+                        dataManager.errorMessage = nil
                     }
                 )
             }
@@ -320,17 +137,17 @@ struct HouseDashboard: View {
             }
             
             VStack(spacing: 16) {
-                TextField("House ID", text: $viewModel.joinGroupId)
+                TextField("House ID", text: $dataManager.joinGroupId)
                     .padding()
                     .background(Color(.systemGray6))
                     .cornerRadius(10)
                     .padding(.horizontal, 32)
                 
                 Button(action: {
-                    viewModel.joinGroup()
+                    dataManager.joinGroup()
                 }) {
                     HStack(spacing: 12) {
-                        if viewModel.isJoiningGroup {
+                        if dataManager.isJoiningGroup {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle())
                                 .tint(.white)
@@ -346,13 +163,13 @@ struct HouseDashboard: View {
                     .cornerRadius(10)
                     .padding(.horizontal, 32)
                 }
-                .disabled(viewModel.joinGroupId.isEmpty || viewModel.isJoiningGroup)
-                .opacity(viewModel.joinGroupId.isEmpty || viewModel.isJoiningGroup ? 0.6 : 1)
+                .disabled(dataManager.joinGroupId.isEmpty || dataManager.isJoiningGroup)
+                .opacity(dataManager.joinGroupId.isEmpty || dataManager.isJoiningGroup ? 0.6 : 1)
             }
             
             Spacer()
         }
-        .alert("Success", isPresented: $viewModel.joinSuccess) {
+        .alert("Success", isPresented: $dataManager.joinSuccess) {
             Button("OK", role: .cancel) { }
         } message: {
             Text("You've successfully joined the house!")
@@ -363,17 +180,17 @@ struct HouseDashboard: View {
         VStack(spacing: 16) {
             // Group name and info
             VStack(spacing: 8) {
-                Text(viewModel.groupName)
+                Text(dataManager.house?.houseName ?? "My House Group")
                     .font(.system(size: 24, weight: .bold))
                     .multilineTextAlignment(.center)
                 
-                if let houseId = viewModel.houseId {
+                if let houseId = dataManager.house?.houseId {
                     Text("House ID: \(houseId)")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
                 
-                Text("\(viewModel.members.count) members")
+                Text("\(dataManager.members.count) members")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
@@ -424,10 +241,10 @@ struct HouseDashboard: View {
             
             // Members list
             VStack(spacing: 0) {
-                ForEach(viewModel.members) { member in
+                ForEach(dataManager.members, id: \.user_id) { member in
                     MemberRow(member: member)
                     
-                    if member.id != viewModel.members.last?.id {
+                    if member.user_id != dataManager.members.last?.user_id {
                         Divider()
                             .padding(.leading, 68)
                     }
@@ -443,40 +260,32 @@ struct HouseDashboard: View {
     }
     
     struct MemberRow: View {
-        let member: HouseMember
+        let member: ProfileModel
+        
+        var fullName: String {
+            return "\(member.profile_first_name) \(member.profile_last_name)"
+        }
         
         var body: some View {
             HStack(spacing: 16) {
                 // Avatar
                 ZStack {
-                    if let avatarUrl = member.avatarUrl, let url = URL(string: avatarUrl) {
-                        AsyncImage(url: url) { image in
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        } placeholder: {
-                            Color(.systemGray5)
-                        }
+                    Circle()
+                        .fill(Color(.systemGray5))
                         .frame(width: 44, height: 44)
-                        .clipShape(Circle())
-                    } else {
-                        Circle()
-                            .fill(Color(.systemGray5))
-                            .frame(width: 44, height: 44)
-                            .overlay(
-                                Text(member.firstName.prefix(1).uppercased())
-                                    .font(.system(size: 18, weight: .medium))
-                                    .foregroundColor(.gray)
-                            )
-                    }
+                        .overlay(
+                            Text(member.profile_first_name.prefix(1).uppercased())
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(.gray)
+                        )
                 }
                 
                 // Member details
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(member.fullName)
+                    Text(fullName)
                         .font(.system(size: 16, weight: .medium))
                     
-                    Text("Member ID: \(member.id.prefix(8))")
+                    Text("Member ID: \(member.user_id.prefix(8))")
                         .font(.system(size: 14))
                         .foregroundColor(.secondary)
                 }
@@ -499,6 +308,44 @@ struct HouseDashboard: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
+        }
+    }
+}
+
+// Preview-specific data manager for testing
+class PreviewHouseDataManager: HouseDataManager {
+    override func loadGroupData() async {
+        print("🏠 PreviewHouseDataManager: Using preview data")
+        // Set up mock data for preview
+        await MainActor.run {
+            self.house = HouseModel(
+                houseAddress: "123 Preview St",
+                houseName: "Preview House",
+                houseImage: "house.fill",
+                createdAt: "2025-05-01",
+                updatedAt: "2025-05-29",
+                houseId: "preview-house-id"
+            )
+            
+            self.members = [
+                ProfileModel(
+                    user_id: "user1",
+                    profile_first_name: "John",
+                    profile_last_name: "Doe",
+                    created_at: nil,
+                    updated_at: nil
+                ),
+                ProfileModel(
+                    user_id: "user2",
+                    profile_first_name: "Jane",
+                    profile_last_name: "Smith",
+                    created_at: nil,
+                    updated_at: nil
+                )
+            ]
+            
+            self.isLoading = false
+            self.showJoinGroupView = false
         }
     }
 }

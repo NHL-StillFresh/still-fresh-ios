@@ -8,8 +8,4 @@
 struct HouseMembershipModel: Decodable {
     let userId: String
     let houseId: String
-    let membershipJoinDate: String
-    let membershipType: String
-    let createdAt: String
-    let updatedAt: String
 }
