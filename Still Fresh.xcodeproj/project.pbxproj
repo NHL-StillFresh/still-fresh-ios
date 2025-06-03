@@ -6,6 +6,15 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		88D1C1522DCF703E007ACF51 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 88D1C1512DCF703E007ACF51 /* Auth */; };
+		88D1C1542DCF703E007ACF51 /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 88D1C1532DCF703E007ACF51 /* Functions */; };
+		88D1C1562DCF703E007ACF51 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 88D1C1552DCF703E007ACF51 /* PostgREST */; };
+		88D1C1582DCF703E007ACF51 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 88D1C1572DCF703E007ACF51 /* Realtime */; };
+		88D1C15A2DCF703E007ACF51 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 88D1C1592DCF703E007ACF51 /* Storage */; };
+		88D1C15C2DCF703E007ACF51 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 88D1C15B2DCF703E007ACF51 /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		898DB8F82DBD5B20008AFA3B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +61,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				88D1C1562DCF703E007ACF51 /* PostgREST in Frameworks */,
+				88D1C1542DCF703E007ACF51 /* Functions in Frameworks */,
+				88D1C15C2DCF703E007ACF51 /* Supabase in Frameworks */,
+				88D1C1522DCF703E007ACF51 /* Auth in Frameworks */,
+				88D1C15A2DCF703E007ACF51 /* Storage in Frameworks */,
+				88D1C1582DCF703E007ACF51 /* Realtime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +127,12 @@
 			);
 			name = "Still Fresh";
 			packageProductDependencies = (
+				88D1C1512DCF703E007ACF51 /* Auth */,
+				88D1C1532DCF703E007ACF51 /* Functions */,
+				88D1C1552DCF703E007ACF51 /* PostgREST */,
+				88D1C1572DCF703E007ACF51 /* Realtime */,
+				88D1C1592DCF703E007ACF51 /* Storage */,
+				88D1C15B2DCF703E007ACF51 /* Supabase */,
 			);
 			productName = "Still Fresh";
 			productReference = 898DB8EA2DBD5B1F008AFA3B /* Still Fresh.app */;
@@ -195,6 +216,9 @@
 			);
 			mainGroup = 898DB8E12DBD5B1F008AFA3B;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				88D1C1502DCF6EF8007ACF51 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 898DB8EB2DBD5B1F008AFA3B /* Products */;
 			projectDirPath = "";
@@ -395,11 +419,17 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = "Still Fresh/Still Fresh.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = R4GG368RQS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Still-Fresh-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Still Fresh?";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.food-and-drink";
+				INFOPLIST_KEY_NSCameraUsageDescription = "We need acces to your camera to scan receipts";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -423,11 +453,17 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = "Still Fresh/Still Fresh.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = R4GG368RQS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Still-Fresh-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Still Fresh?";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.food-and-drink";
+				INFOPLIST_KEY_NSCameraUsageDescription = "We need acces to your camera to scan receipts";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -558,6 +594,50 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		88D1C1502DCF6EF8007ACF51 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		88D1C1512DCF703E007ACF51 /* Auth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 88D1C1502DCF6EF8007ACF51 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Auth;
+		};
+		88D1C1532DCF703E007ACF51 /* Functions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 88D1C1502DCF6EF8007ACF51 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Functions;
+		};
+		88D1C1552DCF703E007ACF51 /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 88D1C1502DCF6EF8007ACF51 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
+		88D1C1572DCF703E007ACF51 /* Realtime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 88D1C1502DCF6EF8007ACF51 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Realtime;
+		};
+		88D1C1592DCF703E007ACF51 /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 88D1C1502DCF6EF8007ACF51 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+		88D1C15B2DCF703E007ACF51 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 88D1C1502DCF6EF8007ACF51 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 898DB8E22DBD5B1F008AFA3B /* Project object */;
 }
