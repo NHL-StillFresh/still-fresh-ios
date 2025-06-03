@@ -59,7 +59,6 @@ struct TestSearchView: View {
                                 ]
                                 
                                 try await SupaClient
-                                    .database
                                     .from("products")
                                     .insert(productData)
                                     .execute()

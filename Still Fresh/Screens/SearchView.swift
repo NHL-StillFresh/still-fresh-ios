@@ -246,7 +246,7 @@ struct SearchView: View {
                     return FoodItem(
                         id: UUID(),
                         name: product.product_name,
-                        store: product.source_id ?? "Unknown",
+                        store: product.source_id?.rawValue ?? "Unknown",
                         image: product.product_image ?? "chicken",
                         expiryDate: expiryDate
                     )
