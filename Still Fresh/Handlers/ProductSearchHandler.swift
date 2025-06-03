@@ -6,7 +6,7 @@
 //
 
 class ProductSearchHandler {
-    public static func searchForProduct(_ productName: String) async -> JumboSearchResponse? {
+    public static func searchForProduct(productName: String) async -> JumboSearchResponse? {
         do {
             return try await JumboService().searchProducts(query: productName)
         } catch {

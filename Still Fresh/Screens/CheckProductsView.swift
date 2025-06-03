@@ -214,7 +214,8 @@ struct CheckProductsView: View {
                                 onSelectProduct: { selectedProduct in
                                     selectProduct(product, selectedProduct)
                                 },
-                                onSearchMore: { searchForProduct(product) }
+                                onSearchMore: { searchForProduct(product)
+                                }
                             )
                         }
                     }

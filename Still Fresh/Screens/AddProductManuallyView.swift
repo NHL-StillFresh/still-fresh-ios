@@ -11,7 +11,6 @@ struct AddProductManuallyView: View {
     @State private var searchText: String = ""
     @State private var isSearching: Bool = false
     @State private var searchResults: [FoodItem] = []
-    @State private var showAddView = false
     @State private var sheetHeight : PresentationDetent = .height(320)
     
     var body: some View {
@@ -34,6 +33,8 @@ struct AddProductManuallyView: View {
             
             if searchText.isEmpty && !isSearching {
                 defaultContent
+            } else if isSearching{
+                progressView
             } else {
                 searchResultsContent
             }
@@ -44,6 +45,15 @@ struct AddProductManuallyView: View {
                 Task {
                     searchResults = await searchProducts(query: newValue)
                 }
+            }
+        }
+    }
+    
+    private var progressView: some View {
+        VStack (spacing: 0) {
+            ScrollView {
+                ProgressView()
+                    .foregroundColor(.primary)
             }
         }
     }
@@ -88,9 +98,11 @@ struct AddProductManuallyView: View {
                         .padding(.horizontal, 40)
                     
                     Button(action: {
-                        showAddView = true
+                        Task {
+                            searchResults = await getProductsFromAPI()
+                        }
                     }) {
-                        Text("Add Food Item")
+                        Text("Add external item")
                             .font(.headline)
                             .foregroundColor(.white)
                             .padding(.horizontal, 20)
@@ -99,14 +111,6 @@ struct AddProductManuallyView: View {
                             .cornerRadius(12)
                     }
                     .padding(.top, 8)
-                    .sheet(isPresented: $showAddView) {
-                        AddView()
-                            .presentationDetents([sheetHeight], selection: $sheetHeight)
-                            .interactiveDismissDisabled(false)
-                            .presentationDragIndicator(.visible)
-                            .presentationCornerRadius(24)
-                            .presentationCompactAdaptation(.none)
-                    }
                     
                     Spacer()
                 }
@@ -116,7 +120,7 @@ struct AddProductManuallyView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(searchResults) { item in
-                            SearchResultItemView(item: item)
+                            SearchResultItem(item: item, showExpiryDate: false, )
                         }
                     }
                     .padding(.horizontal, 16)
@@ -128,6 +132,8 @@ struct AddProductManuallyView: View {
     
     private func searchProducts(query: String) async -> [FoodItem]
     {
+        isSearching = true
+        
         var productsToReturn: [FoodItem] = []
         
         do {
@@ -150,7 +156,7 @@ struct AddProductManuallyView: View {
                     id: UUID(),
                     name: product.product_name,
                     store: product.source_id?.rawValue ?? "Unknown",
-                    image: product.product_image ?? "chicken",
+                    image: "fork.knife",
                     expiryDate: expiryDate
                 )
             }
@@ -159,7 +165,28 @@ struct AddProductManuallyView: View {
             print ("Error searching products: \(error.localizedDescription)")
         }
         
+        isSearching = false
+        
         return productsToReturn
+    }
+    
+    private func getProductsFromAPI() async -> [FoodItem] {
+        isSearching = true
+        
+        let searchResults = await ProductSearchHandler.searchForProduct(productName: searchText)
+
+        isSearching = false
+        
+        return searchResults?.products.data.map({
+            product in
+            FoodItem(
+                id: UUID(),
+                name: product.title,
+                store: "",
+                image: product.imageUrl,
+                expiryDate: Date(),
+            )
+        }) ?? []
     }
     
 }
