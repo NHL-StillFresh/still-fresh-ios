@@ -10,6 +10,7 @@ import SwiftUI
 struct AddProductManuallyView: View {
     @State private var searchText: String = ""
     @State private var isSearching: Bool = false
+    @State private var isSearchingOnAPI: Bool = false
     @State private var searchResults: [FoodItem] = []
     @State private var sheetHeight : PresentationDetent = .height(320)
     
@@ -41,6 +42,9 @@ struct AddProductManuallyView: View {
         }
         .padding(.top, 24)
         .onChange(of: searchText) { _, newValue in
+            
+            isSearchingOnAPI = false
+            
             if !newValue.isEmpty {
                 Task {
                     searchResults = await searchProducts(query: newValue)
@@ -99,6 +103,7 @@ struct AddProductManuallyView: View {
                     
                     Button(action: {
                         Task {
+                            isSearchingOnAPI = true
                             searchResults = await getProductsFromAPI()
                         }
                     }) {
@@ -120,7 +125,29 @@ struct AddProductManuallyView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(searchResults) { item in
-                            SearchResultItem(item: item, showExpiryDate: false, )
+                            SearchResultItem(item: item, showExpiryDate: false, extraFunction: {
+                                Task {
+                                    if (isSearchingOnAPI) {
+                                        let jumboProduct = JumboProduct(
+                                            id: "", title: item.name, quantity: nil, prices: JumboProduct.Prices(price: JumboProduct.Prices.Price(amount: 0, unitSize: "")), imageInfo: nil, available: true
+                                        )
+                                        
+                                        if await ProductSearchHandler.addAllSelectedProducts(selectedProducts: [searchText: jumboProduct], knownProducts: []) {
+                                            print("Added")
+                                        } else {
+                                            print("Error adding")
+                                        }
+                                    } else {
+                                        if await ProductSearchHandler.addAllSelectedProducts(selectedProducts: [:], knownProducts: [item.name]) {
+                                            print("Added")
+                                        } else {
+                                            print("Error adding")
+                                        }
+                                    }
+                                    
+                                }
+                            }
+                            )
                         }
                     }
                     .padding(.horizontal, 16)

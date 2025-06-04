@@ -440,7 +440,6 @@ struct CheckProductsView: View {
                 expandedProducts.remove(product)
             } else {
                 expandedProducts.insert(product)
-                // Auto-search if we don't have results yet
                 if searchResults[product]?.isEmpty ?? true {
                     searchForProduct(product)
                 }

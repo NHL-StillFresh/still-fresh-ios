@@ -58,24 +58,42 @@ class ProductSearchHandler {
             do {
                 let expiryDays = await ExpiryDateGuessModel().fetchExpiryDateFromAPI(productName: product.title)
                 
-                
                 let productData = InsertProductModel(
                     product_name: product.title, product_image: product.imageUrl, product_code: nil, product_expiration_in_days: expiryDays, product_nutritional_value: nil, source_id: nil
                 )
                 
-                let insertedProduct: ProductModel = try await SupaClient
+                let response: [ProductModel] = try await SupaClient
                     .from("products")
-                    .insert(productData)
                     .select()
-                    .single()
+                    .eq("product_name", value: product.title)
                     .execute()
                     .value
+
+                let exists = (response.count) > 0
                 
-                products.append(insertedProduct)
+                var product_id: String = ""
+                
+                if exists {
+                    products.append(response.first!)
+                    
+                    product_id = response.first!.product_id
+                } else {
+                    let insertedProduct: ProductModel = try await SupaClient
+                        .from("products")
+                        .insert(productData)
+                        .select()
+                        .single()
+                        .execute()
+                        .value
+                    
+                    products.append(insertedProduct)
+                    
+                    product_id = insertedProduct.product_id
+                }
                 
                 let productReceiptNameData: [String: String] = [
                     "product_receipt_name": originalName,
-                    "product_id": String(insertedProduct.product_id)
+                    "product_id": product_id
                 ]
                 
                 try await SupaClient
@@ -85,11 +103,26 @@ class ProductSearchHandler {
                 
             } catch {
                 print("Error pushing unknown products: \(error)")
+                return false
             }
         }
         
         for knownProduct in knownProducts {
             do {
+                let response: [ProductModel] = try await SupaClient
+                    .from("products")
+                    .select()
+                    .eq("product_name", value: knownProduct)
+                    .execute()
+                    .value
+
+                let exists = (response.count) > 0
+                
+                if exists {
+                    products.append(response.first!)
+                    continue
+                }
+                
                 let singleReceiptProduct: ProductReceiptNameModel = try await SupaClient
                     .from("product_receipt_names")
                     .select()
@@ -112,6 +145,7 @@ class ProductSearchHandler {
                 
             } catch {
                 print("Error pushing known products: \(error)")
+                return false
             }
         }
         
