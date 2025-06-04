@@ -14,6 +14,10 @@ struct AddProductManuallyView: View {
     @State private var searchResults: [FoodItem] = []
     @State private var sheetHeight : PresentationDetent = .height(320)
     
+    @State private var showErrorAlert = false
+    @State private var showSuccesAlert = false
+    @Environment(\.dismiss) private var dismiss
+    
     var body: some View {
         VStack(spacing: 0) {
             Text("Search your product")
@@ -133,15 +137,15 @@ struct AddProductManuallyView: View {
                                         )
                                         
                                         if await SupabaseProductHandler.addAllSelectedProducts(selectedProducts: [searchText: jumboProduct], knownProducts: []) {
-                                            print("Added")
+                                            showSuccesAlert = true
                                         } else {
-                                            print("Error adding")
+                                            showErrorAlert = true
                                         }
                                     } else {
                                         if await SupabaseProductHandler.addAllSelectedProducts(selectedProducts: [:], knownProducts: [item.name]) {
-                                            print("Added")
+                                            showSuccesAlert = true
                                         } else {
-                                            print("Error adding")
+                                            showErrorAlert = true
                                         }
                                     }
                                     
@@ -154,6 +158,14 @@ struct AddProductManuallyView: View {
                     .padding(.top, 12)
                 }
             }
+        }
+        .alert("Products succesfully added to your basket!", isPresented: $showSuccesAlert) {
+            Button("Close") {
+                dismiss()
+            }
+        }
+        .alert("Error adding your products to your basket", isPresented: $showSuccesAlert) {
+            Button("Close", role: .cancel) {}
         }
     }
     
