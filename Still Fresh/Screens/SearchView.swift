@@ -21,7 +21,6 @@ struct SearchView: View {
                 SearchBarView(
                     searchText: $searchText, 
                     isSearching: $isSearching,
-                    onFilterTap: { showFilterSheet = true }
                 )
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -210,7 +209,7 @@ struct SearchView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(searchResults) { item in
-                            SearchResultItemView(item: item)
+                            SearchResultItem(item: item)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -291,7 +290,6 @@ struct SearchView: View {
 struct SearchBarView: View {
     @Binding var searchText: String
     @Binding var isSearching: Bool
-    var onFilterTap: () -> Void
     
     var body: some View {
         HStack {
@@ -330,12 +328,6 @@ struct SearchBarView: View {
                 .padding(.leading, 8)
                 .transition(.move(edge: .trailing))
                 .animation(.default, value: isSearching)
-            } else {
-                Button(action: onFilterTap) {
-                    Image(systemName: "slider.horizontal.3")
-                        .foregroundColor(Color(UIColor.systemTeal))
-                        .padding(.leading, 8)
-                }
             }
         }
     }
@@ -447,87 +439,6 @@ struct CategoryCard: View {
         }
         .frame(width: 90)
         .onTapGesture(perform: onTap)
-    }
-}
-
-// Search Result Item View
-struct SearchResultItemView: View {
-    var recentSearchesHandler = RecentSearchesHandler()
-    let item: FoodItem
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            // Food icon with background
-            ZStack {
-                Circle()
-                    .fill(bgColorForItem)
-                    .frame(width: 60, height: 60)
-                
-                Image(systemName: symbolNameForItem)
-                    .font(.system(size: 26))
-                    .foregroundColor(bgColorForItem.opacity(1.5))
-            }
-            
-            // Item details
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.name)
-                    .font(.system(size: 17, weight: .medium))
-                
-                Text(item.store)
-                    .font(.system(size: 15))
-                    .foregroundColor(.gray)
-                
-                // Expiry indicator
-                HStack(spacing: 4) {
-                    Image(systemName: "exclamationmark.circle.fill")
-                        .foregroundColor(expiryColor)
-                        .font(.system(size: 12))
-                    
-                    Text(item.expiryText)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(expiryColor)
-                }
-            }
-            
-            Spacer()
-            
-            Button(action: {
-                var recentSearches = recentSearchesHandler.getRecentSearches()
-                
-                recentSearches.insert(item.name, at: recentSearches.endIndex)
-                
-                RecentSearchesHandler().setRecentSearches(recentSearches)
-            }) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 26))
-                    .foregroundColor(Color(UIColor.systemTeal))
-            }
-        }
-        .padding(16)
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
-    }
-    
-    // Background color based on the item
-    private var bgColorForItem: Color {
-        return Color(red: 122/255, green: 190/255, blue: 203/255).opacity(0.2)
-    }
-    
-    // Symbol based on food type
-    private var symbolNameForItem: String {
-        return "fork.knife"
-    }
-    
-    // Color based on days until expiry
-    private var expiryColor: Color {
-        if item.daysUntilExpiry == 0 {
-            return .red
-        } else if item.daysUntilExpiry <= 2 {
-            return .orange
-        } else {
-            return Color(red: 122/255, green: 190/255, blue: 203/255)
-        }
     }
 }
 
