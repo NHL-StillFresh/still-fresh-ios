@@ -485,7 +485,7 @@ struct CheckProductsView: View {
         isAddingProducts = true
         
         Task{
-            let result = await ProductSearchHandler.addAllSelectedProducts(selectedProducts: selectedProducts, knownProducts: knownProducts)
+            let result = await SupabaseProductHandler.addAllSelectedProducts(selectedProducts: selectedProducts, knownProducts: knownProducts)
             
             if (result) {
                 dismiss()

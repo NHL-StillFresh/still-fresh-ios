@@ -132,13 +132,13 @@ struct AddProductManuallyView: View {
                                             id: "", title: item.name, quantity: nil, prices: JumboProduct.Prices(price: JumboProduct.Prices.Price(amount: 0, unitSize: "")), imageInfo: nil, available: true
                                         )
                                         
-                                        if await ProductSearchHandler.addAllSelectedProducts(selectedProducts: [searchText: jumboProduct], knownProducts: []) {
+                                        if await SupabaseProductHandler.addAllSelectedProducts(selectedProducts: [searchText: jumboProduct], knownProducts: []) {
                                             print("Added")
                                         } else {
                                             print("Error adding")
                                         }
                                     } else {
-                                        if await ProductSearchHandler.addAllSelectedProducts(selectedProducts: [:], knownProducts: [item.name]) {
+                                        if await SupabaseProductHandler.addAllSelectedProducts(selectedProducts: [:], knownProducts: [item.name]) {
                                             print("Added")
                                         } else {
                                             print("Error adding")

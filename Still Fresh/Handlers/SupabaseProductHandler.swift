@@ -8,7 +8,80 @@
 import SwiftUI
 
 class SupabaseProductHandler {
-    static func findProductByName(_ name: String) async throws -> ProductModel? {
+    public static func addAllSelectedProducts(
+            selectedProducts: [String: JumboProduct],
+            knownProducts: [String]
+    ) async -> Bool {
+        
+        guard !selectedProducts.isEmpty || !knownProducts.isEmpty else {
+            return false
+        }
+        
+        var products: [ProductModel] = []
+        
+        for (originalName, product) in selectedProducts {
+            do {
+                let expiryDays = await ExpiryDateGuessModel()
+                    .fetchExpiryDateFromAPI(productName: product.title)
+                
+                let productModel = try await addOrFetchProduct(
+                    title: product.title,
+                    imageUrl: product.imageUrl,
+                    expirationDays: expiryDays!
+                )
+                
+                _ = try await addOrFetchReceiptName(
+                    receiptName: originalName,
+                    productId: productModel.product_id
+                )
+                
+                products.append(productModel)
+            } catch {
+                print("Error handling selected product \(product.title): \(error)")
+                return false
+            }
+        }
+        
+        for known in knownProducts {
+            do {
+                let productModel: ProductModel
+                
+                let existing = try await findProductByName(known)
+                
+                if let found = existing {
+                    productModel = found
+                } else {
+                    let receipt: ProductReceiptNameModel = try await SupaClient
+                        .from("product_receipt_names")
+                        .select()
+                        .eq("product_receipt_name", value: known)
+                        .limit(1)
+                        .single()
+                        .execute()
+                        .value
+                    
+                    productModel = try await SupaClient
+                        .from("products")
+                        .select()
+                        .eq("product_id", value: receipt.product_id)
+                        .limit(1)
+                        .single()
+                        .execute()
+                        .value
+                }
+                
+                products.append(productModel)
+            } catch {
+                print("Error handling known product \(known): \(error)")
+                return false
+            }
+        }
+        
+        await AddToBasketHandler.addToBasket(products: products)
+        return true
+    }
+    
+    public static func findProductByName(_ name: String) async throws -> ProductModel? {
         let response: [ProductModel] = try await SupaClient
             .from("products")
             .select()
@@ -26,15 +99,9 @@ class SupabaseProductHandler {
         expirationDays: Int
     ) async throws -> ProductModel {
         
-        let existing: [ProductModel] = try await SupaClient
-            .from("products")
-            .select()
-            .eq("product_name", value: title)
-            .limit(1)
-            .execute()
-            .value
+        let existing: ProductModel? = try await findProductByName(title)
 
-        if let found = existing.first {
+        if let found = existing {
             return found
         }
 

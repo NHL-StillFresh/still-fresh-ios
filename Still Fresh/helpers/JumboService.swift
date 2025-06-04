@@ -10,7 +10,7 @@ class JumboService {
     
     func searchProducts(query: String) async throws -> JumboSearchResponse {
         let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
-        let urlString = "\(baseUrl)/\(apiVersion)/search?q=\(encodedQuery)&offset=0&limit=10"
+        let urlString = "\(baseUrl)/\(apiVersion)/search?q=\(encodedQuery)&offset=0&limit=20"
         
         guard let url = URL(string: urlString) else {
             throw URLError(.badURL)

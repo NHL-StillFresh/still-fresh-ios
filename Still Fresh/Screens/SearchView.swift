@@ -211,7 +211,7 @@ struct SearchView: View {
                         ForEach(searchResults) { item in
                             SearchResultItem(item: item, extraFunction: {
                                 Task {
-                                    await ProductSearchHandler.addAllSelectedProducts(selectedProducts: [:], knownProducts: [item.name])
+                                    await SupabaseProductHandler.addAllSelectedProducts(selectedProducts: [:], knownProducts: [item.name])
                                 }
                             })
                         }
