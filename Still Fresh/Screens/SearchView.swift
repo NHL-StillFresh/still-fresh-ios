@@ -209,7 +209,11 @@ struct SearchView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(searchResults) { item in
-                            SearchResultItem(item: item)
+                            SearchResultItem(item: item, extraFunction: {
+                                Task {
+                                    await ProductSearchHandler.addAllSelectedProducts(selectedProducts: [:], knownProducts: [item.name])
+                                }
+                            })
                         }
                     }
                     .padding(.horizontal, 16)

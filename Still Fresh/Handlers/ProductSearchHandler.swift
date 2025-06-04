@@ -51,50 +51,72 @@ class ProductSearchHandler {
             return false
         }
         
-        do {
-            for (_, (originalName, product)) in selectedProducts.enumerated() {
+        var products: [ProductModel] = []
+        
+        for (_, (originalName, product)) in selectedProducts.enumerated() {
+            
+            do {
+                let expiryDays = await ExpiryDateGuessModel().fetchExpiryDateFromAPI(productName: product.title)
                 
-                do {
-                    try await SupaClient
-                        .from("products")
-                        .select()
-                        .eq("product_name", value: originalName)
-                        .limit(1)
-                        .single()
-                        .execute()
-                } catch {
-                    let expiryDays = await ExpiryDateGuessModel().fetchExpiryDateFromAPI(productName: product.title)
-                    
-                    
-                    let productData = InsertProductModel(
-                        product_name: product.title, product_image: product.imageUrl, product_code: nil, product_expiration_in_days: expiryDays, product_nutritional_value: nil, source_id: nil
-                    )
-                    
-                    let insertedProduct: ProductModel = try await SupaClient
-                        .from("products")
-                        .insert(productData)
-                        .select()
-                        .single()
-                        .execute()
-                        .value
-                    
-                    let productReceiptNameData: [String: String] = [
-                        "product_receipt_name": originalName,
-                        "product_id": String(insertedProduct.product_id)
-                    ]
-                    
-                    try await SupaClient
-                        .from("product_receipt_names")
-                        .insert(productReceiptNameData)
-                        .execute()
-                }
+                
+                let productData = InsertProductModel(
+                    product_name: product.title, product_image: product.imageUrl, product_code: nil, product_expiration_in_days: expiryDays, product_nutritional_value: nil, source_id: nil
+                )
+                
+                let insertedProduct: ProductModel = try await SupaClient
+                    .from("products")
+                    .insert(productData)
+                    .select()
+                    .single()
+                    .execute()
+                    .value
+                
+                products.append(insertedProduct)
+                
+                let productReceiptNameData: [String: String] = [
+                    "product_receipt_name": originalName,
+                    "product_id": String(insertedProduct.product_id)
+                ]
+                
+                try await SupaClient
+                    .from("product_receipt_names")
+                    .insert(productReceiptNameData)
+                    .execute()
+                
+            } catch {
+                print("Error pushing unknown products: \(error)")
             }
-            
-            return true
-            
-        } catch {
-            print("Error: \(error)")
-            return false
         }
+        
+        for knownProduct in knownProducts {
+            do {
+                let singleReceiptProduct: ProductReceiptNameModel = try await SupaClient
+                    .from("product_receipt_names")
+                    .select()
+                    .eq("product_receipt_name", value: knownProduct)
+                    .limit(1)
+                    .single()
+                    .execute()
+                    .value
+                
+                let singleProduct: ProductModel = try await SupaClient
+                    .from("products")
+                    .select()
+                    .eq("product_id", value: singleReceiptProduct.product_id)
+                    .limit(1)
+                    .single()
+                    .execute()
+                    .value
+                
+                products.append(singleProduct)
+                
+            } catch {
+                print("Error pushing known products: \(error)")
+            }
+        }
+        
+        await AddToBasketHandler.addToBasket(products: products)
+        
+        return true
     }
 }
