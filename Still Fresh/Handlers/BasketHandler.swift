@@ -42,6 +42,67 @@ class BasketHandler {
         } catch {
             print("Error: \(error)")
         }
+    }
+    
+    public static func getBasketProductsSortedOnHeader() async throws -> [BasketSectionHeader: [FoodItem]] {
+        let result: [HouseInventoryModelWithProducts] = try await SupaClient
+            .from("house_inventories")
+            .select("""
+                    product_id,
+                    inventory_quantity,
+                    inventory_best_before_date,
+                    products (
+                        product_name,
+                        product_image,
+                        product_code,
+                        product_expiration_in_days,
+                        product_nutritional_value,
+                        source_id,
+                        created_at,
+                        updated_at,
+                        product_id
+                    )
+                    """)
+            .eq("house_id", value: BasketHandler.houseId)
+            .execute()
+            .value
+    
+        var groupedItems: [BasketSectionHeader: [FoodItem]] = [:]
         
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+        
+        let today = Calendar.current.startOfDay(for: Date())
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
+        
+        for resultItem in result {
+            guard let expiryDate = dateFormatter.date(from: resultItem.inventory_best_before_date) else {
+                continue
+            }
+            
+            let expiryDay = Calendar.current.startOfDay(for: expiryDate)
+            
+            let section: BasketSectionHeader
+            if expiryDay == today {
+                section = .today
+            } else if expiryDay == tomorrow {
+                section = .tomorrow
+            } else {
+                section = .later
+            }
+            
+            let foodItem = FoodItem(
+                id: UUID(),
+                name: resultItem.products.product_name,
+                store: "Unknown",
+                image: resultItem.products.product_image,
+                expiryDate: expiryDate
+            )
+            
+            groupedItems[section, default: []].append(foodItem)
+        }
+                
+        return groupedItems
     }
 }

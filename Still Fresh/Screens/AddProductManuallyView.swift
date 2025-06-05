@@ -129,7 +129,7 @@ struct AddProductManuallyView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(searchResults) { item in
-                            SearchResultItem(item: item, showExpiryDate: false, extraFunction: {
+                            FoodItemRowView(item: item, onClickFunction: {
                                 Task {
                                     if (isSearchingOnAPI) {
                                         let jumboProduct = JumboProduct(
@@ -150,7 +150,7 @@ struct AddProductManuallyView: View {
                                     }
                                     
                                 }
-                            }
+                            }, showExpiryDate: false
                             )
                         }
                     }

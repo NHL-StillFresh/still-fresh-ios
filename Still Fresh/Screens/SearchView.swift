@@ -213,7 +213,7 @@ struct SearchView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(searchResults) { item in
-                            SearchResultItem(item: item, extraFunction: {
+                            FoodItemRowView(item: item, onClickFunction: {
                                 Task {
                                     if await SupabaseProductHandler.addAllSelectedProducts(selectedProducts: [:], knownProducts: [item.name]) {
                                         showSuccesAlert = true
