@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-class AddToBasketHandler {
+class BasketHandler {
     private static var houseId : String = "a4eada31-0c2a-4754-89db-558a1f6d338e"
     
     public static func addToBasket(products: [ProductModel]) async {
@@ -26,7 +26,7 @@ class AddToBasketHandler {
                 }
 
                 return InsertHouseInventoryModel(
-                    house_id: AddToBasketHandler.houseId,
+                    house_id: BasketHandler.houseId,
                     product_id: product.product_id,
                     inventory_quantity: 1,
                     inventory_best_before_date: dateFormatter.string(from: bestBeforeDate),

@@ -6,6 +6,7 @@ struct BasketView: View {
     @State private var sortOption: SortOption = .expiryDate
     @State private var searchText = ""
     @State private var isEditMode = false
+    @State private var showAddView = false
     @State private var selectedItems = Set<UUID>()
     
     enum SortOption: String, CaseIterable {
@@ -56,7 +57,6 @@ struct BasketView: View {
                 HStack {
                     Spacer()
                     
-                    // Sort button
                     Button(action: {
                         showSortOptions = true
                     }) {
@@ -127,6 +127,7 @@ struct BasketView: View {
                         
                         Button(action: {
                             // Action to add items
+                            showAddView = true
                         }) {
                             Text("Add Food Items")
                                 .font(.headline)
@@ -202,7 +203,6 @@ struct BasketView: View {
                                 .padding(.top, 20)
                                 .padding(.bottom, 10)
                                 
-                                // Items in section
                                 ForEach(groupedItems[section] ?? [], id: \.id) { item in
                                     BasketItemRow(
                                         item: item,
@@ -215,11 +215,13 @@ struct BasketView: View {
                                 }
                             }
                             
-                            // Bottom padding to account for tab bar
                             Color.clear.frame(height: 100)
                         }
                     }
                 }
+            }
+            .sheet(isPresented: $showAddView) {
+                AddView()
             }
             .sheet(isPresented: $showSortOptions) {
                 // Sort options menu

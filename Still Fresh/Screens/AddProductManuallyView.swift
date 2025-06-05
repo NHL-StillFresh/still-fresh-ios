@@ -164,7 +164,7 @@ struct AddProductManuallyView: View {
                 dismiss()
             }
         }
-        .alert("Error adding your products to your basket", isPresented: $showSuccesAlert) {
+        .alert("Error adding your products to your basket", isPresented: $showErrorAlert) {
             Button("Close", role: .cancel) {}
         }
     }

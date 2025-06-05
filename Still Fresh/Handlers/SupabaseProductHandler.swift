@@ -77,7 +77,7 @@ class SupabaseProductHandler {
             }
         }
         
-        await AddToBasketHandler.addToBasket(products: products)
+        await BasketHandler.addToBasket(products: products)
         return true
     }
     
