@@ -57,7 +57,7 @@ struct StartView : View {
             requestNotificationPermission { granted in
                 if granted {
                     notifications = true
-                    sendTimeNotification(title: "Welcome to the Still Fresh app!", body: "And now we're gonna spam you with notifications.", after: 10)
+//                    sendTimeNotification(title: "Welcome to the Still Fresh app!", body: "And now we're gonna spam you with notifications.", after: 10)
                 } else {
                     notifications = false
                     print("Notification permission not granted.")

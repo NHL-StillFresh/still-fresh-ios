@@ -48,6 +48,7 @@ class BasketHandler {
         let result: [HouseInventoryModelWithProducts] = try await SupaClient
             .from("house_inventories")
             .select("""
+                    house_inventory_id,
                     product_id,
                     inventory_quantity,
                     inventory_best_before_date,

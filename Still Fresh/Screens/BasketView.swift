@@ -67,6 +67,18 @@ struct BasketView: View {
             }
             .toolbar {
                 if !sectionHeaders.isEmpty {
+                    if isEditMode {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button(action: {
+                                
+                            }) {
+                                Image(systemName: "trash")
+                                    .foregroundStyle(Color(.red))
+                                    .frame(width: 32, height: 32)
+                            }
+                        }
+                    }
+                    
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button(action: {
                             isEditMode.toggle()
@@ -163,62 +175,6 @@ struct FoodItemSectionView: View {
         .padding(.top, 20)
     }
 }
-
-//
-//struct SortOptionSheet: View {
-//    @Binding var sortOption: BasketView.SortOption
-//    @Binding var showSortOptions: Bool
-//
-//    var body: some View {
-//        VStack(spacing: 0) {
-//            VStack(spacing: 8) {
-//                RoundedRectangle(cornerRadius: 2.5)
-//                    .fill(Color.gray.opacity(0.3))
-//                    .frame(width: 36, height: 5)
-//                Text("Sort By")
-//                    .font(.headline)
-//                    .padding(.bottom, 8)
-//            }
-//            .frame(maxWidth: .infinity)
-//            .padding(.top, 12)
-//            ForEach(BasketView.SortOption.allCases, id: \.self) { option in
-//                Button(action: {
-//                    sortOption = option
-//                    showSortOptions = false
-//                }) {
-//                    HStack {
-//                        Text(option.rawValue)
-//                            .foregroundColor(.primary)
-//                        Spacer()
-//                        if sortOption == option {
-//                            Image(systemName: "checkmark")
-//                                .foregroundColor(Color(UIColor.systemTeal))
-//                        }
-//                    }
-//                    .padding(.vertical, 14)
-//                    .padding(.horizontal, 24)
-//                }
-//                if option != BasketView.SortOption.allCases.last {
-//                    Divider().padding(.horizontal, 24)
-//                }
-//            }
-//            Button(action: { showSortOptions = false }) {
-//                Text("Cancel")
-//                    .font(.system(size: 16, weight: .semibold))
-//                    .foregroundColor(.primary)
-//                    .frame(maxWidth: .infinity)
-//                    .padding(.vertical, 16)
-//                    .background(Color(.systemGray6))
-//                    .cornerRadius(12)
-//                    .padding(.horizontal, 24)
-//                    .padding(.top, 20)
-//            }
-//            Spacer().frame(height: 30)
-//        }
-//        .background(Color(.systemBackground))
-//        .cornerRadius(20)
-//    }
-//}
 
 extension View {
     @ViewBuilder
