@@ -423,7 +423,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Still Fresh/Still Fresh.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = R4GG368RQS;
+				DEVELOPMENT_TEAM = QVQVVYTNRS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Still-Fresh-Info.plist";
@@ -440,7 +440,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.stillfresh.Still-Fresh";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.stillfresh.Still-FreshJesse";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -457,7 +457,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Still Fresh/Still Fresh.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = R4GG368RQS;
+				DEVELOPMENT_TEAM = QVQVVYTNRS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Still-Fresh-Info.plist";
@@ -474,7 +474,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.stillfresh.Still-Fresh";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.stillfresh.Still-FreshJesse";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;

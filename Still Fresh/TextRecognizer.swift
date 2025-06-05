@@ -72,17 +72,23 @@ class TextRecognizer {
     }
     
     private func extractProductsFromReceipt(lines: [String]) -> [String] {
+        // Remove all items before the first line with at least three '=' characters
+        var filteredLines = lines
+        if let separatorIndex = lines.firstIndex(where: { $0.range(of: "={3,}", options: .regularExpression) != nil }) {
+            if separatorIndex + 1 < lines.count {
+                filteredLines = Array(lines[(separatorIndex + 1)...])
+            } else {
+                filteredLines = []
+            }
+        }
         // Step 1: Identify store type and receipt structure
-        let storeType = identifyStoreType(from: lines)
+        let storeType = identifyStoreType(from: filteredLines)
         print("Identified store type: \(storeType)")
-        
         // Step 2: Find the relevant section of the receipt that contains products
-        let (productSectionStart, productSectionEnd) = identifyProductSection(lines: lines, storeType: storeType)
+        let (productSectionStart, productSectionEnd) = identifyProductSection(lines: filteredLines, storeType: storeType)
         print("Product section identified from line \(productSectionStart) to \(productSectionEnd)")
-        
         // Step 3: Extract products from the identified section
-        let products = extractProducts(from: lines, startIndex: productSectionStart, endIndex: productSectionEnd, storeType: storeType)
-        
+        let products = extractProducts(from: filteredLines, startIndex: productSectionStart, endIndex: productSectionEnd, storeType: storeType)
         return products
     }
     
@@ -317,6 +323,69 @@ class TextRecognizer {
         }
         
         return products
+    }
+    
+    /// Debug method: returns an image with green boxes around recognized text and all recognized lines
+    func debugRecognizeText(in image: UIImage, completion: @escaping (UIImage?, [String]) -> Void) {
+        guard let cgImage = image.cgImage else {
+            print("ERROR: Failed to get CGImage from UIImage")
+            completion(nil, [])
+            return
+        }
+        let request = VNRecognizeTextRequest { request, error in
+            if let error = error {
+                print("ERROR: Text recognition failed: \(error.localizedDescription)")
+                completion(nil, [])
+                return
+            }
+            guard let observations = request.results as? [VNRecognizedTextObservation] else {
+                print("ERROR: No text observations found")
+                completion(nil, [])
+                return
+            }
+            var allLines: [String] = []
+            let size = CGSize(width: image.size.width, height: image.size.height)
+            UIGraphicsBeginImageContextWithOptions(size, false, image.scale)
+            image.draw(at: .zero)
+            guard let context = UIGraphicsGetCurrentContext() else {
+                UIGraphicsEndImageContext()
+                completion(nil, [])
+                return
+            }
+            context.setStrokeColor(UIColor.green.cgColor)
+            context.setLineWidth(2.0)
+            for observation in observations {
+                let candidates = observation.topCandidates(1)
+                if let candidate = candidates.first {
+                    allLines.append(candidate.string)
+                }
+                // VNRecognizedTextObservation boundingBox is in normalized coordinates (0,0 bottom-left)
+                let rect = observation.boundingBox
+                let convertedRect = CGRect(
+                    x: rect.origin.x * size.width,
+                    y: (1 - rect.origin.y - rect.size.height) * size.height,
+                    width: rect.size.width * size.width,
+                    height: rect.size.height * size.height
+                )
+                context.stroke(convertedRect)
+            }
+            let resultImage = UIGraphicsGetImageFromCurrentImageContext()
+            UIGraphicsEndImageContext()
+            completion(resultImage, allLines)
+        }
+        request.recognitionLanguages = ["nl-NL"]
+        request.recognitionLevel = .accurate
+        request.usesLanguageCorrection = true
+        request.minimumTextHeight = 0.01
+        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                try handler.perform([request])
+            } catch {
+                print("ERROR: Failed to perform text recognition: \(error.localizedDescription)")
+                completion(nil, [])
+            }
+        }
     }
     
     // Enum to track different store types for specialized receipt parsing
