@@ -22,6 +22,7 @@ struct StartView : View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
+                #if DEBUG
                 NavigationLink(destination: TextRecognizerDebugView()) {
                     Text("TextRecognizer Debug Tool")
                         .font(.caption)
@@ -31,6 +32,7 @@ struct StartView : View {
                         .cornerRadius(8)
                         .padding(.top, 8)
                 }
+                #endif
                 // Show appropriate NavBar based on the selected tab
                 if selectedTab == 0 {
                     HomeNavBar(userState: userState)
