@@ -13,6 +13,7 @@ import UIKit
 class TextRecognizer {
     /// The array of `RecognizedTextObservation` objects to hold the request's results.
     var observations = [RecognizedTextObservation]();
+    var scanSucceeded = false
     
     /// The Vision request.
     var request = RecognizeTextRequest()
@@ -74,7 +75,12 @@ class TextRecognizer {
             return keywords.contains(where: { text.contains($0) })
         }) {
             observations = []
+            scanSucceeded = false
+            return
         }
+
+        scanSucceeded = true
+        return
     }
 }
 
