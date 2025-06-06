@@ -43,7 +43,9 @@ class TextRecognizer {
             observations.append(observation)
         }
         
-        let lastReceiptStartIndex = observations.lastIndex(where: { $0.topCandidates(1).first?.string.lowercased().contains("=") ?? false || $0.topCandidates(1).first?.string.lowercased().contains("omschrijving") ?? false || $0.topCandidates(1).first?.string.lowercased().contains("bedrag in") ?? false }) ?? 0
+        let lastReceiptStartIndex = observations.lastIndex(where: { $0.topCandidates(1).first?.string.lowercased().contains("=") ?? false
+            || $0.topCandidates(1).first?.string.lowercased().contains("omschrijving") ?? false
+            || $0.topCandidates(1).first?.string.lowercased().contains("bedrag in") ?? false }) ?? 0
         
         debugPrint(lastReceiptStartIndex)
         
@@ -51,12 +53,27 @@ class TextRecognizer {
             observations.removeSubrange(0..<lastReceiptStartIndex)
         }
         
-        let firstReceiptEndIndex = observations.firstIndex(where: { $0.topCandidates(1).first?.string.lowercased().contains("totaal") ?? false || $0.topCandidates(1).first?.string.lowercased().contains("betaald") ?? false
+        let firstReceiptEndIndex = observations.firstIndex(where: { $0.topCandidates(1).first?.string.lowercased().contains("totaal") ?? false
+            || $0.topCandidates(1).first?.string.lowercased().contains("betaald") ?? false
             || $0.topCandidates(1).first?.string.lowercased().contains("mastercard") ?? false
+            || $0.topCandidates(1).first?.string.lowercased().contains("maestro") ?? false
         }) ?? observations.count
         
         if firstReceiptEndIndex < observations.count {
             observations.removeSubrange(firstReceiptEndIndex..<observations.count)
+        }
+        
+        if observations.contains(where: { $0.topCandidates(1).first?.string.lowercased().contains("totaal") ?? false }) {
+            
+        }
+        
+        // If any observation contains certain keywords, clear the observations array
+        let keywords = ["approved", "akkoord", "customer", "receipt", "kopie", "kaarthouder"]
+        if observations.contains(where: { obs in
+            guard let text = obs.topCandidates(1).first?.string.lowercased() else { return false }
+            return keywords.contains(where: { text.contains($0) })
+        }) {
+            observations = []
         }
     }
 }
