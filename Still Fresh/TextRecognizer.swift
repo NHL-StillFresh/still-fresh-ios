@@ -19,6 +19,9 @@ class TextRecognizer {
     var request = RecognizeTextRequest()
     
     func performOCR(imageData: Data) async throws {
+
+        scanSucceeded = false
+
         /// Clear the `observations` array for photo recapture.
         observations.removeAll()
         

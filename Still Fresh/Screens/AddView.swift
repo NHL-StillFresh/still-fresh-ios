@@ -137,6 +137,10 @@ struct AddView: View {
                 } else {
                     scanStatus = .success
                 }
+
+                if !recognizer.scanSucceeded {
+                    scanStatus = .noProductsFound
+                }
                 
                 showScanResults = true
             }
