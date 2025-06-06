@@ -126,9 +126,9 @@ struct AddView: View {
                     observation.topCandidates(1).first?.string
                 }
                 
-                // Remove first item which is most likely '='
+                // Remove first item which is most likely '=', 'betaald', 'totaal'
                 
-                if (productLines.count > 1) && (productLines[0].contains("=")) {
+                if (productLines.count > 1) && ((productLines[0].contains("=") || (productLines[0].lowercased().contains("totaal"))) || (productLines[0].lowercased().contains("betaald"))) {
                  productLines.remove(at: 0)
                 }
                 
@@ -136,6 +136,10 @@ struct AddView: View {
                     scanStatus = .noProductsFound
                 } else {
                     scanStatus = .success
+                }
+
+                if !recognizer.scanSucceeded {
+                    scanStatus = .noProductsFound
                 }
                 
                 showScanResults = true
