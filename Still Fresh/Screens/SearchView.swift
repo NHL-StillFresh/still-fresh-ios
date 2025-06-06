@@ -13,6 +13,10 @@ struct SearchView: View {
     @State private var showAddView = false
     @State private var sheetHeight : PresentationDetent = .height(320)
     
+    @State private var showErrorAlert = false
+    @State private var showSuccesAlert = false
+    @Environment(\.dismiss) private var dismiss
+    
     
     var body: some View {
         NavigationView {
@@ -209,13 +213,29 @@ struct SearchView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(searchResults) { item in
-                            SearchResultItem(item: item)
+                            FoodItemRowView(item: item, onClickFunction: {
+                                Task {
+                                    if await SupabaseProductHandler.addAllSelectedProducts(selectedProducts: [:], knownProducts: [item.name]) {
+                                        showSuccesAlert = true
+                                    } else {
+                                        showErrorAlert = true
+                                    }
+                                }
+                            })
                         }
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
                 }
             }
+        }
+        .alert("Products succesfully added to your basket!", isPresented: $showSuccesAlert) {
+            Button("Close") {
+                dismiss()
+            }
+        }
+        .alert("Error adding your products to your basket", isPresented: $showSuccesAlert) {
+            Button("Close", role: .cancel) {}
         }
     }
     

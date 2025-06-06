@@ -22,8 +22,10 @@ struct CheckProductsView: View {
     @State private var expandedProducts: Set<String> = []
     @State private var isAddingProducts = false
     @State private var showWarningAlert = false
-    @Environment(\.isPreview) private var isPreview
+    @State private var showErrorAlert = false
+    @State private var showSuccesAlert = false
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.isPreview) private var isPreview
     
     private let jumboService = JumboService()
     private let tealColor = Color(UIColor.systemTeal)
@@ -69,6 +71,14 @@ struct CheckProductsView: View {
                 Button("Cancel", role: .cancel) { }
             } message: {
                 Text("You haven't verified all unknown products yet. Only the products you've selected will be added to your basket. Continue anyway?")
+            }
+            .alert("Products succesfully added to your basket!", isPresented: $showSuccesAlert) {
+                Button("Close") {
+                    dismiss()
+                }
+            }
+            .alert("Error adding your products to your basket", isPresented: $showSuccesAlert) {
+                Button("Close", role: .cancel) {}
             }
         }
     }
@@ -440,7 +450,6 @@ struct CheckProductsView: View {
                 expandedProducts.remove(product)
             } else {
                 expandedProducts.insert(product)
-                // Auto-search if we don't have results yet
                 if searchResults[product]?.isEmpty ?? true {
                     searchForProduct(product)
                 }
@@ -486,10 +495,12 @@ struct CheckProductsView: View {
         isAddingProducts = true
         
         Task{
-            let result = await ProductSearchHandler.addAllSelectedProducts(selectedProducts: selectedProducts, knownProducts: knownProducts)
+            let result = await SupabaseProductHandler.addAllSelectedProducts(selectedProducts: selectedProducts, knownProducts: knownProducts)
             
             if (result) {
-                dismiss()
+                showSuccesAlert = true
+            } else {
+                showErrorAlert = true
             }
             
             isAddingProducts = false

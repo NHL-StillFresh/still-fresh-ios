@@ -10,8 +10,13 @@ import SwiftUI
 struct AddProductManuallyView: View {
     @State private var searchText: String = ""
     @State private var isSearching: Bool = false
+    @State private var isSearchingOnAPI: Bool = false
     @State private var searchResults: [FoodItem] = []
     @State private var sheetHeight : PresentationDetent = .height(320)
+    
+    @State private var showErrorAlert = false
+    @State private var showSuccesAlert = false
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         VStack(spacing: 0) {
@@ -41,6 +46,9 @@ struct AddProductManuallyView: View {
         }
         .padding(.top, 24)
         .onChange(of: searchText) { _, newValue in
+            
+            isSearchingOnAPI = false
+            
             if !newValue.isEmpty {
                 Task {
                     searchResults = await searchProducts(query: newValue)
@@ -99,6 +107,7 @@ struct AddProductManuallyView: View {
                     
                     Button(action: {
                         Task {
+                            isSearchingOnAPI = true
                             searchResults = await getProductsFromAPI()
                         }
                     }) {
@@ -120,13 +129,43 @@ struct AddProductManuallyView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(searchResults) { item in
-                            SearchResultItem(item: item, showExpiryDate: false, )
+                            FoodItemRowView(item: item, onClickFunction: {
+                                Task {
+                                    if (isSearchingOnAPI) {
+                                        let jumboProduct = JumboProduct(
+                                            id: "", title: item.name, quantity: nil, prices: JumboProduct.Prices(price: JumboProduct.Prices.Price(amount: 0, unitSize: "")), imageInfo: nil, available: true
+                                        )
+                                        
+                                        if await SupabaseProductHandler.addAllSelectedProducts(selectedProducts: [searchText: jumboProduct], knownProducts: []) {
+                                            showSuccesAlert = true
+                                        } else {
+                                            showErrorAlert = true
+                                        }
+                                    } else {
+                                        if await SupabaseProductHandler.addAllSelectedProducts(selectedProducts: [:], knownProducts: [item.name]) {
+                                            showSuccesAlert = true
+                                        } else {
+                                            showErrorAlert = true
+                                        }
+                                    }
+                                    
+                                }
+                            }, showExpiryDate: false
+                            )
                         }
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
                 }
             }
+        }
+        .alert("Products succesfully added to your basket!", isPresented: $showSuccesAlert) {
+            Button("Close") {
+                dismiss()
+            }
+        }
+        .alert("Error adding your products to your basket", isPresented: $showErrorAlert) {
+            Button("Close", role: .cancel) {}
         }
     }
     

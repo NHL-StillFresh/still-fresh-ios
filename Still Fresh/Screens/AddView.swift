@@ -174,7 +174,6 @@ struct OptionButton: View {
     
     var body: some View {
         Button(action: {
-
             selectedOption = option
         }) {
             HStack(spacing: 16) {
@@ -245,47 +244,39 @@ struct ScanResultsView: View {
             
             Text("Verify that the scan contains no errors")
             
-            if productLines.isEmpty {
-                Text(scanStatus.message)
-                    .foregroundColor(.gray)
-                    .padding()
-                
-                if !debugText.isEmpty {
-                    Text("Debug Info")
+            List(productLines, id: \.self) { line in
+                HStack {
+                    Text(line)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .font(.headline)
-                        .padding(.top)
+                        .fontWeight(.semibold)
                     
-                    ScrollView {
-                        Text(debugText)
-                            .font(.system(.footnote, design: .monospaced))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding()
-                    }
-                    .frame(maxHeight: 200)
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(8)
-                    .padding()
-                }
-            } else {
-                List(productLines, id: \.self) { line in
-                    
-                    Button(line) {
+                    Button(action: {
                         itemToRemove = line
                         showAlert = true
+                    }) {
+                        Image(systemName: "trash")
+                            .foregroundColor(.red)
                     }
-                }.alert(isPresented: $showAlert) {
-                    Alert(
-                        title: Text("Confirm Removal"),
-                        message: Text("Are you sure you want to remove \(itemToRemove ?? "")?"),
-                        primaryButton: .destructive(Text("Remove")) {
-                            if let item = itemToRemove, let index = productLines.firstIndex(of: item) {
-                                productLines.remove(at: index)
-                            }
-                        },
-                        secondaryButton: .cancel()
-                    )
                 }
+                .padding(.vertical, 8)
+                .lineSpacing(8)
+                .listRowBackground(Color(UIColor.systemBackground))
             }
+            .scrollContentBackground(.hidden)
+            .alert(isPresented: $showAlert) {
+                Alert(
+                    title: Text("Confirm Removal"),
+                    message: Text("Are you sure you want to remove \(itemToRemove ?? "")?"),
+                    primaryButton: .destructive(Text("Remove")) {
+                        if let item = itemToRemove, let index = productLines.firstIndex(of: item) {
+                            productLines.remove(at: index)
+                        }
+                    },
+                    secondaryButton: .cancel()
+                )
+            }
+            
             
             Spacer()
             
