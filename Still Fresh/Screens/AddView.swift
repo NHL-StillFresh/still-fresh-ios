@@ -118,35 +118,27 @@ struct AddView: View {
                 isProcessing = true
                 scanStatus = .processing
                 
-                recognizer.extractProductLines(from: image) { lines in
-                    DispatchQueue.main.async {
-                        isProcessing = false
-                        self.productLines = lines
-                        
-                        var debugInfo = "Image size: \(image.size.width)x\(image.size.height)\n"
-                        debugInfo += "Detected \(lines.count) products\n"
-                        
-                        if lines.isEmpty {
-                            scanStatus = .noProductsFound
-                        } else {
-                            scanStatus = .success
-                        }
-                        
-                        for (index, line) in lines.enumerated() {
-                            debugInfo += "Product \(index+1): \(line)\n"
-                        }
-                        
-                        debugText = debugInfo
-                        
-                        print("Detected lines: \(lines.count)")
-                        for (index, line) in lines.enumerated() {
-                            print("Line \(index): \(line)")
-                        }
-                        
-                        // Show results after processing is complete
-                        showScanResults = true
-                    }
+                Task {
+                    try await recognizer.performOCR(imageData: image.jpegData(compressionQuality: 1)!)
                 }
+                
+                self.productLines = recognizer.observations.compactMap { observation in
+                    observation.topCandidates(1).first?.string
+                }
+                
+                // Remove first item which is most likely '='
+                
+                if (productLines.count > 1) && (productLines[0].contains("=")) {
+                 productLines.remove(at: 0)
+                }
+                
+                if self.productLines.isEmpty {
+                    scanStatus = .noProductsFound
+                } else {
+                    scanStatus = .success
+                }
+                
+                showScanResults = true
             }
         }
         .sheet(isPresented: $showScanResults) {
