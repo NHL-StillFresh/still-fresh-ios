@@ -14,6 +14,7 @@ struct AddView: View {
     
     @State private var productLines: [String] = []
     @State private var showCamera = false
+    @State private var showImageUploader = false
     @State private var isProcessing = false
     @State private var scanStatus: ScanStatus = .ready
     @State private var debugText: String = ""
@@ -38,7 +39,7 @@ struct AddView: View {
     enum AddOption: String, CaseIterable, Identifiable {
         case scanReceipt = "Scan receipt"
         case addProduct = "Add manually"
-        case scanProduct = "Scan product"
+        case uploadImage = "Upload image"
         
         var id: String { self.rawValue }
         
@@ -46,7 +47,7 @@ struct AddView: View {
             switch self {
             case .scanReceipt: return "doc.text.viewfinder"
             case .addProduct: return "plus.circle"
-            case .scanProduct: return "barcode.viewfinder"
+            case .uploadImage: return "photo"
             }
         }
         
@@ -54,7 +55,7 @@ struct AddView: View {
             switch self {
             case .scanReceipt: return "Scan a receipt to add products"
             case .addProduct: return "Add a product manually"
-            case .scanProduct: return "Scan a barcode of a product"
+            case .uploadImage: return "Upload an image with products"
             }
         }
     }
@@ -121,13 +122,11 @@ struct AddView: View {
                 Task {
                     try await recognizer.performOCR(imageData: image.jpegData(compressionQuality: 1)!)
                 }
-                
+                                
                 self.productLines = recognizer.observations.compactMap { observation in
                     observation.topCandidates(1).first?.string
                 }
-                
-                // Remove first item which is most likely '=', 'betaald', 'totaal'
-                
+                                
                 if (productLines.count > 1) && ((productLines[0].contains("=") || (productLines[0].lowercased().contains("totaal"))) || (productLines[0].lowercased().contains("betaald"))) {
                  productLines.remove(at: 0)
                 }
@@ -142,6 +141,7 @@ struct AddView: View {
                     scanStatus = .noProductsFound
                 }
                 
+                showImageUploader = false
                 showScanResults = true
             }
         }
@@ -149,6 +149,34 @@ struct AddView: View {
             ScanResultsView(productLines: productLines, debugText: debugText, scanStatus: scanStatus) {
                 showScanResults = false
                 dismiss()
+            }.background(Color(.white))
+        }
+        .sheet(isPresented: $showImageUploader) {
+            SingleImagePicker { data in
+                isProcessing = true
+                scanStatus = .processing
+                
+                Task {
+                    try await recognizer.performOCR(imageData: data)
+                }
+            
+                print(recognizer.observations)
+                
+                self.productLines = recognizer.observations.compactMap { observation in
+                    observation.topCandidates(1).first?.string
+                }
+                                
+                if (productLines.count > 1) && (productLines[0].contains("=")) {
+                 productLines.remove(at: 0)
+                }
+                
+                if self.productLines.isEmpty {
+                    scanStatus = .noProductsFound
+                } else {
+                    scanStatus = .success
+                }
+                
+                showScanResults = true
             }
         }
     }
@@ -159,16 +187,17 @@ struct AddView: View {
     
     private func handleOptionSelection(_ option: AddOption) {
         switch option {
-        case .scanReceipt:
-            scanStatus = .ready
-            debugText = ""
-            showCamera = true
-        case .addProduct:
-            showAddProductManuallyView = true
-        default:
-            dismiss()
+            case .scanReceipt:
+                scanStatus = .ready
+                debugText = ""
+                showCamera = true
+            case .addProduct:
+                showAddProductManuallyView = true
+            case .uploadImage:
+                showImageUploader = true
         }
     }
+    
 }
 
 struct OptionButton: View {
