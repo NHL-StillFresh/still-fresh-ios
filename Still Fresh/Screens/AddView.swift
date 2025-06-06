@@ -275,7 +275,8 @@ struct ScanResultsView: View {
                 .font(.title)
                 .padding()
             
-            Text("Verify that the scan contains no errors")
+            Text("Verify that the scan contains no errors. If no products shown, then there might be a problem with the scan.")
+                .padding(.horizontal, 24)
             
             List(productLines, id: \.self) { line in
                 HStack {
@@ -310,7 +311,6 @@ struct ScanResultsView: View {
                 )
             }
             
-            
             Spacer()
             
             Button("Next") {
@@ -324,6 +324,7 @@ struct ScanResultsView: View {
             .padding(.bottom)
             .sheet(isPresented: $showProductsView) {
                 CheckProductsView(productLines: productLines)
+                
             }
         }
     }
