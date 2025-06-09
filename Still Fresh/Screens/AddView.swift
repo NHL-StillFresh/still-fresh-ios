@@ -121,28 +121,27 @@ struct AddView: View {
                 
                 Task {
                     try await recognizer.performOCR(imageData: image.jpegData(compressionQuality: 1)!)
-                }
-                                
-                self.productLines = recognizer.observations.compactMap { observation in
-                    observation.topCandidates(1).first?.string
-                }
-                                
-                if (productLines.count > 1) && ((productLines[0].contains("=") || (productLines[0].lowercased().contains("totaal"))) || (productLines[0].lowercased().contains("betaald"))) {
-                 productLines.remove(at: 0)
-                }
-                
-                if self.productLines.isEmpty {
-                    scanStatus = .noProductsFound
-                } else {
-                    scanStatus = .success
-                }
+                    self.productLines = recognizer.observations.compactMap { observation in
+                        observation.topCandidates(1).first?.string
+                    }
+                    
+                    if (productLines.count > 1) && ((productLines[0].contains("=") || (productLines[0].lowercased().contains("totaal"))) || (productLines[0].lowercased().contains("betaald"))) {
+                     productLines.remove(at: 0)
+                    }
+                    
+                    if self.productLines.isEmpty {
+                        scanStatus = .noProductsFound
+                    } else {
+                        scanStatus = .success
+                    }
 
-                if !recognizer.scanSucceeded {
-                    scanStatus = .noProductsFound
+                    if !recognizer.scanSucceeded {
+                        scanStatus = .noProductsFound
+                    }
+                    
+                    showImageUploader = false
+                    showScanResults = true
                 }
-                
-                showImageUploader = false
-                showScanResults = true
             }
         }
         .sheet(isPresented: $showScanResults) {
@@ -158,25 +157,22 @@ struct AddView: View {
                 
                 Task {
                     try await recognizer.performOCR(imageData: data)
+                    self.productLines = recognizer.observations.compactMap { observation in
+                        observation.topCandidates(1).first?.string
+                    }
+                    
+                    if (productLines.count > 1) && (productLines[0].contains("=")) {
+                     productLines.remove(at: 0)
+                    }
+                    
+                    if self.productLines.isEmpty {
+                        scanStatus = .noProductsFound
+                    } else {
+                        scanStatus = .success
+                    }
+                    
+                    showScanResults = true
                 }
-            
-                print(recognizer.observations)
-                
-                self.productLines = recognizer.observations.compactMap { observation in
-                    observation.topCandidates(1).first?.string
-                }
-                                
-                if (productLines.count > 1) && (productLines[0].contains("=")) {
-                 productLines.remove(at: 0)
-                }
-                
-                if self.productLines.isEmpty {
-                    scanStatus = .noProductsFound
-                } else {
-                    scanStatus = .success
-                }
-                
-                showScanResults = true
             }
         }
     }

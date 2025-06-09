@@ -66,11 +66,7 @@ class TextRecognizer {
         if firstReceiptEndIndex < observations.count {
             observations.removeSubrange(firstReceiptEndIndex..<observations.count)
         }
-        
-        if observations.contains(where: { $0.topCandidates(1).first?.string.lowercased().contains("totaal") ?? false }) {
-            
-        }
-        
+
         // If any observation contains certain keywords, clear the observations array
         let keywords = ["approved", "akkoord", "customer", "receipt", "kopie", "kaarthouder"]
         if observations.contains(where: { obs in
