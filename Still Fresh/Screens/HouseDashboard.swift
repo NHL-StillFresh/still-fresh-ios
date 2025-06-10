@@ -64,7 +64,6 @@ struct HouseDashboard: View {
         groupManager.userGroups.map { group in
             DropdownItem(
                 title: group.groupName,
-                icon: group.groupId == groupManager.selectedGroupId ? "checkmark.circle.fill" : "circle",
                 items: nil
             )
         }

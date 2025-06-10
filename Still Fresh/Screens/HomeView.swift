@@ -6,6 +6,7 @@ struct HomeView: View {
     @StateObject private var tipsViewModel = FoodTipsViewModel(apiKey: APIKeys.openRouterAPIKey)
     @StateObject private var expiringItemsViewModel = ExpiringItemsViewModel()
     @StateObject private var recipesViewModel = RecipesViewModel()
+    @StateObject private var groupManager = GroupSelectionManager()
     
     // Animation states
     @State private var tipsOpacity = 0.0
@@ -15,39 +16,88 @@ struct HomeView: View {
     @State private var expiringItemsOffset: CGFloat = 40
     @State private var recipesOffset: CGFloat = 50
     
+    // Time-based greeting
+    private var greeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 0..<12:
+            return "Good morning"
+        case 12..<17:
+            return "Good afternoon"
+        default:
+            return "Good evening"
+        }
+    }
+    
+    // Group selection items
+    private var groupSelectionItems: [DropdownItem] {
+        groupManager.userGroups.map { group in
+            DropdownItem(
+                title: group.groupName,
+                items: nil
+            )
+        }
+    }
+    
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                // Tips carousel
-                TipsCarouselView(tips: tipsViewModel.dailyTips.tips, onRefresh: {
-                    tipsViewModel.forceRefreshTips()
-                })
-                .padding(.top)
-                .opacity(tipsOpacity)
-                .offset(y: tipsOffset)
+        VStack(alignment: .leading, spacing: 16) {
+            // Greeting and House Selection
+            VStack(alignment: .leading, spacing: 8) {
+                Text(greeting)
+                    .font(.title2)
+                    .fontWeight(.medium)
+                    .foregroundColor(.gray)
+                    .padding(.horizontal)
                 
-                // Expiring items carousel
-                ExpiringItemsCarouselView(
-                    items: expiringItemsViewModel.expiringItems,
-                    onSeeAllTapped: {
-                        expiringItemsViewModel.seeAllItems()
+                AnimatedDropdownMenu(
+                    title: groupManager.selectedGroup?.groupName ?? "Select House",
+                    items: groupSelectionItems,
+                    onSelect: { item in
+                        // Find the group with matching name and select it
+                        if let group = groupManager.userGroups.first(where: { $0.groupName == item.title }) {
+                            groupManager.selectGroup(group.groupId)
+                        }
                     }
                 )
-                .opacity(expiringItemsOpacity)
-                .offset(y: expiringItemsOffset)
-                
-                // Last minute recipes carousel
-                LastMinuteRecipesCarouselView(
-                    recipes: recipesViewModel.lastMinuteRecipes,
-                    onSeeAllTapped: {
-                        recipesViewModel.seeAllRecipes()
-                    }
-                )
-                .opacity(recipesOpacity)
-                .offset(y: recipesOffset)
-                
-                Spacer(minLength: 30)
+                .padding(.horizontal)
             }
+            .padding(.top)
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Tips carousel
+                    TipsCarouselView(tips: tipsViewModel.dailyTips.tips, onRefresh: {
+                        tipsViewModel.forceRefreshTips()
+                    })
+                    .opacity(tipsOpacity)
+                    .offset(y: tipsOffset)
+                    
+                    // Expiring items carousel
+                    ExpiringItemsCarouselView(
+                        items: expiringItemsViewModel.expiringItems,
+                        onSeeAllTapped: {
+                            expiringItemsViewModel.seeAllItems()
+                        }
+                    )
+                    .opacity(expiringItemsOpacity)
+                    .offset(y: expiringItemsOffset)
+                    
+                    // Last minute recipes carousel
+                    LastMinuteRecipesCarouselView(
+                        recipes: recipesViewModel.lastMinuteRecipes,
+                        onSeeAllTapped: {
+                            recipesViewModel.seeAllRecipes()
+                        }
+                    )
+                    .opacity(recipesOpacity)
+                    .offset(y: recipesOffset)
+                    
+                    Spacer(minLength: 30)
+                }
+            }
+        }
+        .task {
+            await groupManager.loadUserGroups()
         }
         .onAppear {
             if tipsViewModel.dailyTips.tips.isEmpty {
@@ -66,16 +116,13 @@ struct HomeView: View {
                 showItemsWithoutAnimation()
             }
         }
-//        .alert(isPresented: Binding(
-//            get: { tipsViewModel.error != nil },
-//            set: { if !$0 { tipsViewModel.error = nil } }
-//        )) {
-//            Alert(
-//                title: Text("Error"),
-//                message: Text(tipsViewModel.error ?? "Unknown error"),
-//                dismissButton: .default(Text("OK"))
-//            )
-//        }
+        .alert("Error", isPresented: .constant(groupManager.errorMessage != nil)) {
+            Button("OK", role: .cancel) {
+                groupManager.errorMessage = nil
+            }
+        } message: {
+            Text(groupManager.errorMessage ?? "Unknown error")
+        }
     }
     
     private func animateItemsIn() {
