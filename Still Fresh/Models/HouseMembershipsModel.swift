@@ -1,11 +1,30 @@
 //
-//  HouseMemberships.swift
+//  GroupMembershipModel.swift
 //  Still Fresh
 //
-//  Created by Jesse van der Voet on 19/05/2025.
-//
 
-struct HouseMembershipModel: Decodable {
+struct GroupMembershipModel: Decodable {
     let userId: String
-    let houseId: String
+    let groupId: String
+    
+    init(userId: String, groupId: String) {
+        self.userId = userId
+        self.groupId = groupId
+    }
+}
+
+// For backward compatibility
+typealias HouseMembershipModel = GroupMembershipModel
+
+extension GroupMembershipModel {
+    // Computed property for backward compatibility
+    var houseId: String {
+        return groupId
+    }
+    
+    // Initializer for backward compatibility
+    init(fromHouseMembership membership: GroupMembershipModel) {
+        self.userId = membership.userId
+        self.groupId = membership.groupId
+    }
 }

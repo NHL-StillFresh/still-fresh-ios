@@ -2,63 +2,32 @@ import SwiftUI
 import Supabase
 
 struct HouseDashboard: View {
-    @StateObject private var dataManager: HouseDataManager
+    @StateObject private var groupManager = GroupSelectionManager()
     private let tealColor = Color(UIColor.systemTeal)
-    
-    init(dataManager: HouseDataManager = HouseDataManager()) {
-        _dataManager = StateObject(wrappedValue: dataManager)
-    }
-    
-    // Sample dropdown menu data
-    private let dropdownItems: [DropdownItem] = [
-        DropdownItem(
-            title: "House Management",
-            icon: "house.fill",
-            items: [
-                DropdownItem(title: "View House Details", icon: "doc.text.fill", items: nil),
-                DropdownItem(title: "Edit House Info", icon: "pencil", items: nil),
-                DropdownItem(title: "House Settings", icon: "gear", items: nil)
-            ]
-        ),
-        DropdownItem(
-            title: "Members",
-            icon: "person.3.fill",
-            items: [
-                DropdownItem(title: "View All Members", icon: "person.2.fill", items: nil),
-                DropdownItem(title: "Invite New Member", icon: "person.badge.plus", items: nil),
-                DropdownItem(title: "Manage Permissions", icon: "lock.fill", items: nil)
-            ]
-        ),
-        DropdownItem(
-            title: "Shopping Lists",
-            icon: "cart.fill",
-            items: [
-                DropdownItem(title: "Current List", icon: "list.bullet", items: nil),
-                DropdownItem(title: "Create New List", icon: "plus.circle", items: nil),
-                DropdownItem(title: "View History", icon: "clock.fill", items: nil)
-            ]
-        ),
-        DropdownItem(
-            title: "Statistics",
-            icon: "chart.bar.fill",
-            items: nil
-        )
-    ]
     
     var body: some View {
         NavigationView {
             ZStack {
-                if dataManager.isLoading {
+                if groupManager.isLoading {
                     loadingView
-                } else if dataManager.showJoinGroupView {
+                } else if groupManager.selectedGroup == nil {
                     joinGroupView
                 } else {
                     ScrollView {
                         VStack(spacing: 24) {
-                            // Animated dropdown menu
-                            AnimatedDropdownMenu(title: "House Dashboard Options", items: dropdownItems)
-                                .padding(.horizontal, 16)
-                                .padding(.top, 8)
+                            // Group selection dropdown
+                            AnimatedDropdownMenu(
+                                title: groupManager.selectedGroup?.groupName ?? "Select Group",
+                                items: groupSelectionItems,
+                                onSelect: { item in
+                                    // Find the group with matching name and select it
+                                    if let group = groupManager.userGroups.first(where: { $0.groupName == item.title }) {
+                                        groupManager.selectGroup(group.groupId)
+                                    }
+                                }
+                            )
+                            .padding(.horizontal, 16)
+                            .padding(.top, 8)
                             
                             // Group info card
                             groupInfoCard
@@ -75,22 +44,29 @@ struct HouseDashboard: View {
                     }
                 }
             }
-            .navigationTitle("House Dashboard")
+            .navigationTitle("Group Dashboard")
             .navigationBarTitleDisplayMode(.large)
-            .onAppear {
-                Task {
-                    await dataManager.loadGroupData()
+            .task {
+                await groupManager.loadUserGroups()
+            }
+            .alert("Error", isPresented: .constant(groupManager.errorMessage != nil)) {
+                Button("OK", role: .cancel) {
+                    groupManager.errorMessage = nil
                 }
+            } message: {
+                Text(groupManager.errorMessage ?? "Unknown error")
             }
-            .alert(isPresented: .constant(dataManager.errorMessage != nil)) {
-                Alert(
-                    title: Text("Error"),
-                    message: Text(dataManager.errorMessage ?? "Unknown error"),
-                    dismissButton: .default(Text("OK")) {
-                        dataManager.errorMessage = nil
-                    }
-                )
-            }
+        }
+    }
+    
+    // Dynamic group selection items
+    private var groupSelectionItems: [DropdownItem] {
+        groupManager.userGroups.map { group in
+            DropdownItem(
+                title: group.groupName,
+                icon: group.groupId == groupManager.selectedGroupId ? "checkmark.circle.fill" : "circle",
+                items: nil
+            )
         }
     }
     
@@ -103,10 +79,10 @@ struct HouseDashboard: View {
                 .tint(tealColor)
             
             VStack(spacing: 8) {
-                Text("Loading House Data")
+                Text("Loading Group Data")
                     .font(.headline)
                 
-                Text("Please wait while we fetch your house information")
+                Text("Please wait while we fetch your group information")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -126,10 +102,10 @@ struct HouseDashboard: View {
                     .font(.system(size: 70))
                     .foregroundColor(tealColor)
                 
-                Text("Join a House")
+                Text("Join a Group")
                     .font(.system(size: 24, weight: .bold))
                 
-                Text("Enter a house ID to join an existing group")
+                Text("Enter a group ID to join an existing group")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -137,22 +113,24 @@ struct HouseDashboard: View {
             }
             
             VStack(spacing: 16) {
-                TextField("House ID", text: $dataManager.joinGroupId)
+                TextField("Group ID", text: $groupManager.joinGroupId)
                     .padding()
                     .background(Color(.systemGray6))
                     .cornerRadius(10)
                     .padding(.horizontal, 32)
                 
                 Button(action: {
-                    dataManager.joinGroup()
+                    Task {
+                        await groupManager.joinGroup()
+                    }
                 }) {
                     HStack(spacing: 12) {
-                        if dataManager.isJoiningGroup {
+                        if groupManager.isJoiningGroup {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle())
                                 .tint(.white)
                         } else {
-                            Text("Join House")
+                            Text("Join Group")
                                 .font(.headline)
                         }
                     }
@@ -163,16 +141,16 @@ struct HouseDashboard: View {
                     .cornerRadius(10)
                     .padding(.horizontal, 32)
                 }
-                .disabled(dataManager.joinGroupId.isEmpty || dataManager.isJoiningGroup)
-                .opacity(dataManager.joinGroupId.isEmpty || dataManager.isJoiningGroup ? 0.6 : 1)
+                .disabled(groupManager.joinGroupId.isEmpty || groupManager.isJoiningGroup)
+                .opacity(groupManager.joinGroupId.isEmpty || groupManager.isJoiningGroup ? 0.6 : 1)
             }
             
             Spacer()
         }
-        .alert("Success", isPresented: $dataManager.joinSuccess) {
+        .alert("Success", isPresented: $groupManager.joinSuccess) {
             Button("OK", role: .cancel) { }
         } message: {
-            Text("You've successfully joined the house!")
+            Text("You've successfully joined the group!")
         }
     }
     
@@ -180,17 +158,17 @@ struct HouseDashboard: View {
         VStack(spacing: 16) {
             // Group name and info
             VStack(spacing: 8) {
-                Text(dataManager.house?.houseName ?? "My House Group")
+                Text(groupManager.selectedGroup?.groupName ?? "My Group")
                     .font(.system(size: 24, weight: .bold))
                     .multilineTextAlignment(.center)
                 
-                if let houseId = dataManager.house?.houseId {
-                    Text("House ID: \(houseId)")
+                if let groupId = groupManager.selectedGroup?.groupId {
+                    Text("Group ID: \(groupId)")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
                 
-                Text("\(dataManager.members.count) members")
+                Text("\(groupManager.members.count) members")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
@@ -241,10 +219,10 @@ struct HouseDashboard: View {
             
             // Members list
             VStack(spacing: 0) {
-                ForEach(dataManager.members, id: \.user_id) { member in
+                ForEach(groupManager.members, id: \.user_id) { member in
                     MemberRow(member: member)
                     
-                    if member.user_id != dataManager.members.last?.user_id {
+                    if member.user_id != groupManager.members.last?.user_id {
                         Divider()
                             .padding(.leading, 68)
                     }
@@ -312,44 +290,48 @@ struct HouseDashboard: View {
     }
 }
 
-// Preview-specific data manager for testing
-class PreviewHouseDataManager: HouseDataManager {
-    override func loadGroupData() async {
-        print("🏠 PreviewHouseDataManager: Using preview data")
-        // Set up mock data for preview
-        await MainActor.run {
-            self.house = HouseModel(
-                houseAddress: "123 Preview St",
-                houseName: "Preview House",
-                houseImage: "house.fill",
+// Preview provider
+struct HouseDashboard_Previews: PreviewProvider {
+    static var previews: some View {
+        let groupManager = GroupSelectionManager()
+        
+        // Set up preview data with valid UUIDs
+        groupManager.userGroups = [
+            GroupModel(
+                groupId: "9a5a0c2b-e789-4a8b-b9ec-ccc6ab5cacfb", // Using a valid UUID format
+                groupName: "Marketing Team",
+                groupImage: "",
+                groupAddress: "123 Preview St",
                 createdAt: "2025-05-01",
-                updatedAt: "2025-05-29",
-                houseId: "preview-house-id"
+                updatedAt: "2025-05-29"
+            ),
+            GroupModel(
+                groupId: "41e54c45-59c2-449b-9bde-3805cc0790ab", // Using a valid UUID format
+                groupName: "Development Team",
+                groupImage: "",
+                groupAddress: "456 Preview Ave",
+                createdAt: "2025-05-01",
+                updatedAt: "2025-05-29"
             )
-            
-            self.members = [
-                ProfileModel(
-                    user_id: "user1",
-                    profile_first_name: "John",
-                    profile_last_name: "Doe",
-                    created_at: nil,
-                    updated_at: nil
-                ),
-                ProfileModel(
-                    user_id: "user2",
-                    profile_first_name: "Jane",
-                    profile_last_name: "Smith",
-                    created_at: nil,
-                    updated_at: nil
-                )
-            ]
-            
-            self.isLoading = false
-            self.showJoinGroupView = false
-        }
+        ]
+        groupManager.members = [
+            ProfileModel(
+                user_id: "ff56d9d8-a11a-4dca-b6c4-53eb1ba592fb", // Using a valid UUID format
+                profile_first_name: "John",
+                profile_last_name: "Doe",
+                created_at: nil,
+                updated_at: nil
+            ),
+            ProfileModel(
+                user_id: "c2d7b699-c5b4-4d5c-a9f0-8c8161cc955b", // Using a valid UUID format
+                profile_first_name: "Jane",
+                profile_last_name: "Smith",
+                created_at: nil,
+                updated_at: nil
+            )
+        ]
+        groupManager.selectGroup("9a5a0c2b-e789-4a8b-b9ec-ccc6ab5cacfb") // Using the first group's UUID
+        
+        return HouseDashboard()
     }
-}
-
-#Preview {
-    HouseDashboard()
 }

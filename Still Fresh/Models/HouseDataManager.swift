@@ -4,7 +4,7 @@ import Supabase
 class HouseDataManager: ObservableObject {
     @Published var house: HouseModel? = nil
     @Published var members: [ProfileModel] = []
-    @Published var memberships: [HouseMembershipModel] = []
+    @Published var memberships: [GroupMembershipModel] = []
     @Published var isLoading: Bool = true
     @Published var errorMessage: String? = nil
     @Published var showJoinGroupView = false
@@ -14,15 +14,14 @@ class HouseDataManager: ObservableObject {
     
     private let authEmail = "elmedin@test.nl"
     private let authPassword = "elmedin123"
+    private var lastAuthTime: Date?
+    private let authCacheDuration: TimeInterval = 4 * 60 // 4 minutes
     
     // Get the current user ID
     private func getCurrentUserId() async throws -> UUID {
-        print("🔑 HouseDataManager: Getting current user ID")
         let session = try await SupaClient.auth.session
         let userId = session.user.id
-        print("🔑 HouseDataManager: User ID: \(userId.uuidString)")
         if userId.uuidString.isEmpty {
-            print("❌ HouseDataManager: Empty user ID")
             throw NSError(domain: "HouseDataManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unable to get current user ID"])
         }
         return userId
@@ -30,7 +29,13 @@ class HouseDataManager: ObservableObject {
     
     // Authenticate with Supabase
     private func authenticate() async throws {
-        print("🔐 HouseDataManager: Authenticating with Supabase")
+        // Check if we have a recent authentication
+        if let lastAuth = lastAuthTime,
+           Date().timeIntervalSince(lastAuth) < authCacheDuration {
+            // Auth is still valid, skip re-auth
+            return
+        }
+        
         do {
             let session = try await SupaClient.auth.session
             
@@ -42,133 +47,51 @@ class HouseDataManager: ObservableObject {
                 
                 // If token expires in less than 5 minutes, refresh it
                 if expiryDate < fiveMinutesFromNow {
-                    print("🔐 HouseDataManager: Refreshing authentication token")
                     do {
                         _ = try await SupaClient.auth.refreshSession()
                     } catch {
-                        print("❌ HouseDataManager: Failed to refresh token: \(error)")
                         // Continue with the current token, but it might expire soon
                     }
                 }
             }
             
-            print("✅ HouseDataManager: Authentication successful")
+            lastAuthTime = Date()
         } catch {
-            print("❌ HouseDataManager: No active session, attempting to sign in")
             do {
                 // Try to sign in with the stored credentials
                 _ = try await SupaClient.auth.signIn(
                     email: authEmail,
                     password: authPassword
                 )
-                print("✅ HouseDataManager: Sign in successful")
+                lastAuthTime = Date()
             } catch {
-                print("❌ HouseDataManager: Sign in failed: \(error)")
                 throw NSError(domain: "HouseDataManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Authentication failed"])
             }
         }
     }
     
     // Load house data for the current user
-    func loadHouseData() async throws -> HouseModel? {
-        print("🏠 HouseDataManager: loadHouseData started")
+    func loadHouseData(houseId: String) async throws -> HouseModel? {
         try await authenticate()
-        let userId = try await getCurrentUserId()
-        print("🏠 HouseDataManager: Got user ID, fetching memberships")
         
-        // Get user's house membership - with RLS, this should only return memberships the user has access to
-        let membershipResponse = try await SupaClient.database
-            .from("house_membership")
-            .select("*")
-            .eq("user_id", value: userId.uuidString)
-            .execute()
-        
-        if membershipResponse.data.isEmpty {
-            print("❌ HouseDataManager: No memberships found for user ID: \(userId.uuidString)")
-            return nil
-        }
-        print("✅ HouseDataManager: Found memberships for user")
-        
-        // We need to use the original decoder for the snake_case field names in the response
-        let decoder = JSONDecoder()
-        
-        // Create a temporary struct to match the database response format
-        struct MembershipRecord: Decodable {
-            let user_id: String
-            let house_id: String
-        }
-        
-        // Decode the response using the temporary struct
-        let membershipRecords = try decoder.decode([MembershipRecord].self, from: membershipResponse.data)
-        
-        // Convert to our model format
-        let memberships = membershipRecords.map { record -> HouseMembershipModel in
-            return HouseMembershipModel(userId: record.user_id, houseId: record.house_id)
-        }
-        
-        self.memberships = memberships
-        
-        guard let firstMembership = memberships.first else {
-            print("❌ HouseDataManager: No memberships found in the parsed data")
-            return nil
-        }
         // Get house details
-        let allHousesResponse = try await SupaClient.database
-            .from("houses")
-            .select("*")
-            .execute()
-        
-        // Check if the house exists in the all houses response
-        let allHousesString = String(data: allHousesResponse.data, encoding: .utf8) ?? ""
-        if allHousesString.contains(firstMembership.houseId) {
-            // Try to extract the house directly from the all houses response
-            do {
-                let decoder = JSONDecoder()
-                let allHouses = try decoder.decode([HouseRecord].self, from: allHousesResponse.data)
-                
-                if let matchingHouse = allHouses.first(where: { $0.house_id.lowercased() == firstMembership.houseId.lowercased() }) {
-                    print("✅ HouseDataManager: Found matching house with name: \(matchingHouse.house_name)")
-                    return HouseModel(
-                        houseAddress: matchingHouse.house_address ?? "",
-                        houseName: matchingHouse.house_name,
-                        houseImage: matchingHouse.house_image ?? "",
-                        createdAt: matchingHouse.created_at ?? "",
-                        updatedAt: matchingHouse.updated_at ?? "",
-                        houseId: matchingHouse.house_id
-                    )
-                }
-            } catch {
-                print("❌ HouseDataManager: Failed to decode all houses: \(error)")
-            }
-        }
-        
-        // If we couldn't find the house in the all houses response, try the original query
-        // With proper RLS policies, this should return houses the authenticated user has access to
         let houseResponse = try await SupaClient.database
             .from("houses")
             .select("*")
-            .eq("house_id", value: firstMembership.houseId)
+            .eq("house_id", value: houseId)
             .execute()
         
         // If the direct query fails, try a different approach that might work better with RLS
-        // If the direct query fails, use a fallback approach
         if houseResponse.data.isEmpty || houseResponse.data.count <= 2 {
             // Create a fallback house model with the known ID
-            // This handles cases where RLS prevents reading the house details but we know the user is a member
             return HouseModel(
                 houseAddress: "",
-                houseName: "House \(firstMembership.houseId.prefix(8))",
+                houseName: "House \(houseId.prefix(8))",
                 houseImage: "",
                 createdAt: "",
                 updatedAt: "",
-                houseId: firstMembership.houseId
+                houseId: houseId
             )
-        }
-        
-        // Check if the data is empty or just contains empty brackets []
-        if houseResponse.data.isEmpty || houseResponse.data.count <= 2 {
-            print("❌ HouseDataManager: No house found with ID: \(firstMembership.houseId)")
-            return nil
         }
         
         // Create a temporary struct to match the database response format
@@ -182,6 +105,7 @@ class HouseDataManager: ObservableObject {
         }
         
         // Decode the response using the temporary struct
+        let decoder = JSONDecoder()
         do {
             let houseRecords = try decoder.decode([HouseRecord].self, from: houseResponse.data)
             
@@ -215,27 +139,44 @@ class HouseDataManager: ObservableObject {
                 houseId: firstHouse.house_id
             )
         } catch {
-            // If we can't decode the house data but we know the house exists,
-            // create a minimal house model with just the ID to avoid showing the join view
-            if !houseResponse.data.isEmpty && houseResponse.data.count > 2 {
-                let houseId = firstMembership.houseId
-                return HouseModel(
-                    houseAddress: "",
-                    houseName: "House \(houseId.prefix(8))", // Use part of the ID as a temporary name
-                    houseImage: "",
-                    createdAt: "",
-                    updatedAt: "",
-                    houseId: houseId
-                )
-            }
-            
             return nil
         }
-        
-        return nil
     }
     
-    // This helper method was removed to fix compilation errors
+    // Load memberships for the current user
+    func loadMemberships() async throws -> [GroupMembershipModel] {
+        try await authenticate()
+        let userId = try await getCurrentUserId()
+        
+        // Get user's memberships
+        let membershipResponse = try await SupaClient.database
+            .from("house_membership")
+            .select("*")
+            .eq("user_id", value: userId.uuidString)
+            .execute()
+        
+        if membershipResponse.data.isEmpty {
+            return []
+        }
+        
+        // Create a temporary struct to match the database response format
+        struct MembershipRecord: Decodable {
+            let user_id: String
+            let house_id: String
+        }
+        
+        // Decode the response using the temporary struct
+        let decoder = JSONDecoder()
+        let membershipRecords = try decoder.decode([MembershipRecord].self, from: membershipResponse.data)
+        
+        // Convert to our model format
+        let memberships = membershipRecords.map { record in
+            GroupMembershipModel(userId: record.user_id, groupId: record.house_id)
+        }
+        
+        self.memberships = memberships
+        return memberships
+    }
     
     // Get all members of a house
     func getHouseMembers(houseId: String) async throws -> [ProfileModel] {
@@ -322,10 +263,9 @@ class HouseDataManager: ObservableObject {
         
         do {
             // Load house data
-            let house = try await loadHouseData()
+            let house = try await loadHouseData(houseId: house!.houseId)
             
             if house == nil {
-                print("❌ HouseDataManager: No house found for user, showing join view")
                 await MainActor.run {
                     self.isLoading = false
                     self.showJoinGroupView = true
@@ -343,7 +283,6 @@ class HouseDataManager: ObservableObject {
                 self.isLoading = false
             }
         } catch {
-            print("❌ HouseDataManager: Error loading data: \(error)")
             await MainActor.run {
                 self.errorMessage = "Failed to load group data: \(error.localizedDescription)"
                 self.isLoading = false
@@ -376,7 +315,6 @@ class HouseDataManager: ObservableObject {
                     }
                 }
             } catch {
-                print("Join error: \(error)")
                 await MainActor.run {
                     self.errorMessage = "Failed to join group: \(error.localizedDescription)"
                     self.isJoiningGroup = false

@@ -12,16 +12,30 @@ struct DropdownItem: Identifiable {
 struct AnimatedDropdownMenu: View {
     let title: String
     let items: [DropdownItem]
+    let onSelect: ((DropdownItem) -> Void)?
+    
     @State private var isExpanded = false
     @State private var selectedItem: DropdownItem?
     private let tealColor = Color(UIColor.systemTeal)
+    
+    init(
+        title: String,
+        items: [DropdownItem],
+        onSelect: ((DropdownItem) -> Void)? = nil
+    ) {
+        self.title = title
+        self.items = items
+        self.onSelect = onSelect
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Header/Title button
             Button(action: {
-                withAnimation(.spring()) {
-                    isExpanded.toggle()
+                if !items.isEmpty {
+                    withAnimation(.spring()) {
+                        isExpanded.toggle()
+                    }
                 }
             }) {
                 HStack {
@@ -31,11 +45,13 @@ struct AnimatedDropdownMenu: View {
                     
                     Spacer()
                     
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.gray)
-                        .rotationEffect(.degrees(isExpanded ? 0 : 0))
-                        .animation(.spring(), value: isExpanded)
+                    if !items.isEmpty {
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.gray)
+                            .rotationEffect(.degrees(isExpanded ? 0 : 0))
+                            .animation(.spring(), value: isExpanded)
+                    }
                 }
                 .padding(.vertical, 12)
                 .padding(.horizontal, 16)
@@ -48,12 +64,23 @@ struct AnimatedDropdownMenu: View {
                         .stroke(Color(.systemGray4), lineWidth: 1)
                 )
             }
+            .disabled(items.isEmpty)
             
             // Dropdown content
-            if isExpanded {
+            if isExpanded && !items.isEmpty {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(items) { item in
-                        DropdownItemRow(item: item, selectedItem: $selectedItem, tealColor: tealColor)
+                        DropdownItemRow(
+                            item: item,
+                            selectedItem: $selectedItem,
+                            tealColor: tealColor,
+                            onSelect: { selectedItem in
+                                onSelect?(selectedItem)
+                                withAnimation(.spring()) {
+                                    isExpanded = false
+                                }
+                            }
+                        )
                     }
                 }
                 .padding(.vertical, 8)
@@ -75,6 +102,7 @@ struct DropdownItemRow: View {
     @Binding var selectedItem: DropdownItem?
     @State private var isExpanded = false
     let tealColor: Color
+    let onSelect: ((DropdownItem) -> Void)?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -85,6 +113,7 @@ struct DropdownItemRow: View {
                     }
                 } else {
                     selectedItem = item
+                    onSelect?(item)
                 }
             }) {
                 HStack(spacing: 12) {
@@ -114,8 +143,13 @@ struct DropdownItemRow: View {
             if isExpanded, let subItems = item.items {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(subItems) { subItem in
-                        DropdownItemRow(item: subItem, selectedItem: $selectedItem, tealColor: tealColor)
-                            .padding(.leading, 16)
+                        DropdownItemRow(
+                            item: subItem,
+                            selectedItem: $selectedItem,
+                            tealColor: tealColor,
+                            onSelect: onSelect
+                        )
+                        .padding(.leading, 16)
                     }
                 }
                 .transition(.move(edge: .top).combined(with: .opacity))
@@ -137,7 +171,10 @@ struct DropdownItemRow: View {
                 ]
             ),
             DropdownItem(title: "Second Option", icon: "heart.fill", items: nil)
-        ]
+        ],
+        onSelect: { item in
+            print("Selected item: \(item.title)")
+        }
     )
     .padding()
     .previewLayout(.sizeThatFits)
