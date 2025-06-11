@@ -3,28 +3,24 @@
 //  Still Fresh
 //
 
-struct GroupMembershipModel: Decodable {
+import Foundation
+
+struct HouseMembershipModel: Codable {
     let userId: String
-    let groupId: String
+    let houseId: String
     
-    init(userId: String, groupId: String) {
-        self.userId = userId
-        self.groupId = groupId
+    enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
+        case houseId = "house_id"
+    }
+    
+    static func create(userId: String, houseId: String) -> [String: String] {
+        return [
+            "user_id": userId,
+            "house_id": houseId
+        ]
     }
 }
 
 // For backward compatibility
-typealias HouseMembershipModel = GroupMembershipModel
-
-extension GroupMembershipModel {
-    // Computed property for backward compatibility
-    var houseId: String {
-        return groupId
-    }
-    
-    // Initializer for backward compatibility
-    init(fromHouseMembership membership: GroupMembershipModel) {
-        self.userId = membership.userId
-        self.groupId = membership.groupId
-    }
-}
+typealias GroupMembershipModel = HouseMembershipModel

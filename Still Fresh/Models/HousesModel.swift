@@ -23,13 +23,22 @@ struct GroupModel: Decodable {
     }
 }
 
-struct HouseModel: Decodable {
-    let houseAddress: String?
-    let houseName: String
+struct HouseModel: Codable {
+    let houseId: String
+    var houseName: String
     let houseImage: String
+    let houseAddress: String
     let createdAt: String
     let updatedAt: String
-    let houseId: String
+    
+    enum CodingKeys: String, CodingKey {
+        case houseId = "house_id"
+        case houseName = "house_name"
+        case houseImage = "house_image"
+        case houseAddress = "house_address"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
 }
 
 extension HouseModel {

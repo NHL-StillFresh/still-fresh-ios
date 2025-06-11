@@ -1,53 +1,39 @@
 import SwiftUI
 
 struct GroupSelectionView: View {
-    @StateObject private var groupManager = GroupSelectionManager()
+    @StateObject private var appStore = AppStore.shared
     
     var body: some View {
-        NavigationView {
-            Group {
-                if groupManager.isLoading {
-                    ProgressView("Loading groups...")
-                } else {
-                    List(groupManager.userGroups, id: \.groupId) { group in
-                        GroupRowView(group: group, isSelected: group.groupId == groupManager.selectedGroupId)
-                            .onTapGesture {
-                                groupManager.selectGroup(group.groupId)
+        VStack {
+            if appStore.isLoading {
+                ProgressView()
+            } else if appStore.userHouses.isEmpty {
+                Text("No houses found")
+                    .foregroundColor(.secondary)
+            } else {
+                ForEach(appStore.userHouses, id: \.houseId) { house in
+                    Button(action: {
+                        Task {
+                            await appStore.selectHouse(houseId: house.houseId)
+                        }
+                    }) {
+                        HStack {
+                            Text(house.houseName)
+                            Spacer()
+                            if house.houseId == appStore.selectedHouse?.houseId {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.blue)
                             }
+                        }
+                        .padding()
+                        .background(house.houseId == appStore.selectedHouse?.houseId ? Color.blue.opacity(0.1) : Color.clear)
                     }
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
-            .navigationTitle("Select Group")
-            .task {
-                await groupManager.loadUserGroups()
-            }
         }
-    }
-}
-
-struct GroupRowView: View {
-    let group: GroupModel
-    let isSelected: Bool
-    
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading) {
-                Text(group.groupName)
-                    .font(.headline)
-                if let address = group.groupAddress {
-                    Text(address)
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                }
-            }
-            
-            Spacer()
-            
-            if isSelected {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.blue)
-            }
+        .task {
+            await appStore.loadUserHouses()
         }
-        .padding(.vertical, 8)
     }
 } 

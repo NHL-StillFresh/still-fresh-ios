@@ -6,7 +6,7 @@ struct HomeView: View {
     @StateObject private var tipsViewModel = FoodTipsViewModel(apiKey: APIKeys.openRouterAPIKey)
     @StateObject private var expiringItemsViewModel = ExpiringItemsViewModel()
     @StateObject private var recipesViewModel = RecipesViewModel()
-    @StateObject private var groupManager = GroupSelectionManager()
+    @StateObject private var appStore = AppStore.shared
     
     // Animation states
     @State private var tipsOpacity = 0.0
@@ -29,11 +29,11 @@ struct HomeView: View {
         }
     }
     
-    // Group selection items
-    private var groupSelectionItems: [DropdownItem] {
-        groupManager.userGroups.map { group in
+    // House selection items
+    private var houseSelectionItems: [DropdownItem] {
+        appStore.userHouses.map { house in
             DropdownItem(
-                title: group.groupName,
+                title: house.houseName,
                 items: nil
             )
         }
@@ -50,12 +50,15 @@ struct HomeView: View {
                     .padding(.horizontal)
                 
                 AnimatedDropdownMenu(
-                    title: groupManager.selectedGroup?.groupName ?? "Select House",
-                    items: groupSelectionItems,
+                    title: appStore.selectedHouse?.houseName ?? "Select House",
+                    items: houseSelectionItems,
                     onSelect: { item in
-                        // Find the group with matching name and select it
-                        if let group = groupManager.userGroups.first(where: { $0.groupName == item.title }) {
-                            groupManager.selectGroup(group.groupId)
+                        // Find the house with matching name and select it
+                        if let house = appStore.userHouses.first(where: { $0.houseName == item.title }) {
+                            Task {
+                                await appStore.selectHouse(houseId: house.houseId)
+                                print("DEBUG [HomeView] House selected - Name: \(house.houseName), ID: \(house.houseId)")
+                            }
                         }
                     }
                 )
@@ -97,7 +100,9 @@ struct HomeView: View {
             }
         }
         .task {
-            await groupManager.loadUserGroups()
+            await appStore.loadUserHouses()
+            print("DEBUG [HomeView] Houses loaded - Count: \(appStore.userHouses.count)")
+            print("DEBUG [HomeView] Selected house: \(appStore.selectedHouse?.houseName ?? "None")")
         }
         .onAppear {
             if tipsViewModel.dailyTips.tips.isEmpty {
@@ -116,12 +121,12 @@ struct HomeView: View {
                 showItemsWithoutAnimation()
             }
         }
-        .alert("Error", isPresented: .constant(groupManager.errorMessage != nil)) {
+        .alert("Error", isPresented: .constant(appStore.errorMessage != nil)) {
             Button("OK", role: .cancel) {
-                groupManager.errorMessage = nil
+                appStore.errorMessage = nil
             }
         } message: {
-            Text(groupManager.errorMessage ?? "Unknown error")
+            Text(appStore.errorMessage ?? "Unknown error")
         }
     }
     
