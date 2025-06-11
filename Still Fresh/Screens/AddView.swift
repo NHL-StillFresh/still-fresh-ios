@@ -12,13 +12,14 @@ struct AddView: View {
     @State private var selectedOption: AddOption?
     @State private var appearAnimation = false
     
-    // Add states for receipt scanning
     @State private var productLines: [String] = []
     @State private var showCamera = false
+    @State private var showImageUploader = false
     @State private var isProcessing = false
     @State private var scanStatus: ScanStatus = .ready
     @State private var debugText: String = ""
     @State private var showScanResults = false
+    @State private var showAddProductManuallyView = false
     let recognizer = TextRecognizer()
     
     enum ScanStatus {
@@ -38,7 +39,7 @@ struct AddView: View {
     enum AddOption: String, CaseIterable, Identifiable {
         case scanReceipt = "Scan receipt"
         case addProduct = "Add manually"
-        case scanProduct = "Scan product"
+        case uploadImage = "Upload image"
         
         var id: String { self.rawValue }
         
@@ -46,7 +47,7 @@ struct AddView: View {
             switch self {
             case .scanReceipt: return "doc.text.viewfinder"
             case .addProduct: return "plus.circle"
-            case .scanProduct: return "barcode.viewfinder"
+            case .uploadImage: return "photo"
             }
         }
         
@@ -54,19 +55,13 @@ struct AddView: View {
             switch self {
             case .scanReceipt: return "Scan a receipt to add products"
             case .addProduct: return "Add a product manually"
-            case .scanProduct: return "Scan a barcode of a product"
+            case .uploadImage: return "Upload an image with products"
             }
         }
     }
     
     var body: some View {
         VStack(spacing: 0) {
-            // Drag indicator
-            RoundedRectangle(cornerRadius: 2.5)
-                .fill(Color.gray.opacity(0.3))
-                .frame(width: 36, height: 5)
-                .padding(.top, 8)
-                .padding(.bottom, 12)
             
             // Title
             Text("Add products")
@@ -74,6 +69,7 @@ struct AddView: View {
                 .fontWeight(.bold)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 24)
+                .padding(.top, 12)
                 .padding(.bottom, 12)
             
             // Options - Using VStack with reduced spacing
@@ -94,62 +90,57 @@ struct AddView: View {
             
             Spacer(minLength: 0)
         }
-        .background(
-            // This makes the edges rounded and adds a background
-            RoundedRectangle(cornerRadius: 24)
-                .fill(Color(UIColor.systemBackground))
-                .ignoresSafeArea(edges: .bottom)
-                .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: -5)
-        )
+        .frame(height: 310)
+        .padding(.top, 24)
+//        .background(
+//            RoundedRectangle(cornerRadius: 24)
+//                .fill(Color(UIColor.systemBackground))
+//                .ignoresSafeArea(edges: .bottom)
+//                .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: -5)
+//        )
         .onAppear {
-            // Animate options appearing
             withAnimation {
                 appearAnimation = true
             }
         }
         .onChange(of: selectedOption) { oldValue, newValue in
             if newValue != nil {
-                // Immediately handle selection without delay
                 handleOptionSelection(newValue!)
             }
         }
-
+        .sheet(isPresented: $showAddProductManuallyView, onDismiss: { selectedOption = nil }) {
+            AddProductManuallyView()
+                .presentationDragIndicator(.visible)
+        }
         .sheet(isPresented: $showCamera, onDismiss: {
-            // Reset selectedOption when the camera is dismissed
             selectedOption = nil
         }) {
             ImagePicker(sourceType: .camera) { image in
                 isProcessing = true
                 scanStatus = .processing
                 
-                recognizer.extractProductLines(from: image) { lines in
-                    DispatchQueue.main.async {
-                        isProcessing = false
-                        self.productLines = lines
-                        
-                        var debugInfo = "Image size: \(image.size.width)x\(image.size.height)\n"
-                        debugInfo += "Detected \(lines.count) products\n"
-                        
-                        if lines.isEmpty {
-                            scanStatus = .noProductsFound
-                        } else {
-                            scanStatus = .success
-                        }
-                        
-                        for (index, line) in lines.enumerated() {
-                            debugInfo += "Product \(index+1): \(line)\n"
-                        }
-                        
-                        debugText = debugInfo
-                        
-                        print("Detected lines: \(lines.count)")
-                        for (index, line) in lines.enumerated() {
-                            print("Line \(index): \(line)")
-                        }
-                        
-                        // Show results after processing is complete
-                        showScanResults = true
+                Task {
+                    try await recognizer.performOCR(imageData: image.jpegData(compressionQuality: 1)!)
+                    self.productLines = recognizer.observations.compactMap { observation in
+                        observation.topCandidates(1).first?.string
                     }
+                    
+                    if (productLines.count > 1) && ((productLines[0].contains("=") || (productLines[0].lowercased().contains("totaal"))) || (productLines[0].lowercased().contains("betaald"))) {
+                     productLines.remove(at: 0)
+                    }
+                    
+                    if self.productLines.isEmpty {
+                        scanStatus = .noProductsFound
+                    } else {
+                        scanStatus = .success
+                    }
+
+                    if !recognizer.scanSucceeded {
+                        scanStatus = .noProductsFound
+                    }
+                    
+                    showImageUploader = false
+                    showScanResults = true
                 }
             }
         }
@@ -157,6 +148,31 @@ struct AddView: View {
             ScanResultsView(productLines: productLines, debugText: debugText, scanStatus: scanStatus) {
                 showScanResults = false
                 dismiss()
+            }.background(Color(.white))
+        }
+        .sheet(isPresented: $showImageUploader) {
+            SingleImagePicker { data in
+                isProcessing = true
+                scanStatus = .processing
+                
+                Task {
+                    try await recognizer.performOCR(imageData: data)
+                    self.productLines = recognizer.observations.compactMap { observation in
+                        observation.topCandidates(1).first?.string
+                    }
+                    
+                    if (productLines.count > 1) && (productLines[0].contains("=")) {
+                     productLines.remove(at: 0)
+                    }
+                    
+                    if self.productLines.isEmpty {
+                        scanStatus = .noProductsFound
+                    } else {
+                        scanStatus = .success
+                    }
+                    
+                    showScanResults = true
+                }
             }
         }
     }
@@ -167,14 +183,17 @@ struct AddView: View {
     
     private func handleOptionSelection(_ option: AddOption) {
         switch option {
-        case .scanReceipt:
-            scanStatus = .ready
-            debugText = ""
-            showCamera = true
-        default:
-            dismiss()
+            case .scanReceipt:
+                scanStatus = .ready
+                debugText = ""
+                showCamera = true
+            case .addProduct:
+                showAddProductManuallyView = true
+            case .uploadImage:
+                showImageUploader = true
         }
     }
+    
 }
 
 struct OptionButton: View {
@@ -184,7 +203,6 @@ struct OptionButton: View {
     
     var body: some View {
         Button(action: {
-
             selectedOption = option
         }) {
             HStack(spacing: 16) {
@@ -253,48 +271,40 @@ struct ScanResultsView: View {
                 .font(.title)
                 .padding()
             
-            Text("Verify that the scan contains no errors")
+            Text("Verify that the scan contains no errors. If no products shown, then there might be a problem with the scan.")
+                .padding(.horizontal, 24)
             
-            if productLines.isEmpty {
-                Text(scanStatus.message)
-                    .foregroundColor(.gray)
-                    .padding()
-                
-                if !debugText.isEmpty {
-                    Text("Debug Info")
+            List(productLines, id: \.self) { line in
+                HStack {
+                    Text(line)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .font(.headline)
-                        .padding(.top)
+                        .fontWeight(.semibold)
                     
-                    ScrollView {
-                        Text(debugText)
-                            .font(.system(.footnote, design: .monospaced))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding()
-                    }
-                    .frame(maxHeight: 200)
-                    .background(Color.gray.opacity(0.1))
-                    .cornerRadius(8)
-                    .padding()
-                }
-            } else {
-                List(productLines, id: \.self) { line in
-                    
-                    Button(line) {
+                    Button(action: {
                         itemToRemove = line
                         showAlert = true
+                    }) {
+                        Image(systemName: "trash")
+                            .foregroundColor(.red)
                     }
-                }.alert(isPresented: $showAlert) {
-                    Alert(
-                        title: Text("Confirm Removal"),
-                        message: Text("Are you sure you want to remove \(itemToRemove ?? "")?"),
-                        primaryButton: .destructive(Text("Remove")) {
-                            if let item = itemToRemove, let index = productLines.firstIndex(of: item) {
-                                productLines.remove(at: index)
-                            }
-                        },
-                        secondaryButton: .cancel()
-                    )
                 }
+                .padding(.vertical, 8)
+                .lineSpacing(8)
+                .listRowBackground(Color(UIColor.systemBackground))
+            }
+            .scrollContentBackground(.hidden)
+            .alert(isPresented: $showAlert) {
+                Alert(
+                    title: Text("Confirm Removal"),
+                    message: Text("Are you sure you want to remove \(itemToRemove ?? "")?"),
+                    primaryButton: .destructive(Text("Remove")) {
+                        if let item = itemToRemove, let index = productLines.firstIndex(of: item) {
+                            productLines.remove(at: index)
+                        }
+                    },
+                    secondaryButton: .cancel()
+                )
             }
             
             Spacer()
@@ -310,6 +320,7 @@ struct ScanResultsView: View {
             .padding(.bottom)
             .sheet(isPresented: $showProductsView) {
                 CheckProductsView(productLines: productLines)
+                
             }
         }
     }

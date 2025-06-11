@@ -4,10 +4,10 @@ struct FoodItem: Identifiable {
     let id: UUID
     let name: String
     let store: String
-    let image: String // Image name
+    let image: String? // Image name
     let expiryDate: Date
     
-    init(id: UUID = UUID(), name: String, store: String, image: String, expiryDate: Date) {
+    init(id: UUID = UUID(), name: String, store: String, image: String?, expiryDate: Date) {
         self.id = id
         self.name = name
         self.store = store

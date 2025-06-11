@@ -2,7 +2,8 @@ import SwiftUI
 
 struct BottomNavBar: View {
     @Binding var selectedTab: Int
-    @State private var showAddSheet = false
+    @State private var showAddSheet : Bool = false
+    @State private var sheetHeight : PresentationDetent = .height(320)
     
     var body: some View {
         ZStack {
@@ -41,15 +42,6 @@ struct BottomNavBar: View {
                     }.tag(4)
             }
             .accentColor(Color(UIColor.systemTeal))
-            .onChange(of: selectedTab) { oldTab, newTab in
-                // If the middle tab is selected, revert to previous tab and show the add sheet
-                if newTab == 2 {
-                    // Show add sheet when middle tab is tapped
-                    showAddSheet = true
-                    // Revert to previous tab or default to first tab
-                    selectedTab = max(0, selectedTab == 2 ? 0 : selectedTab)
-                }
-            }
             .onAppear {
                 // Set the background color and appearance of tab bar
                 let appearance = UITabBarAppearance()
@@ -70,9 +62,6 @@ struct BottomNavBar: View {
                 appearance.stackedLayoutAppearance = itemAppearance
                 
                 UITabBar.appearance().standardAppearance = appearance
-                if #available(iOS 15.0, *) {
-                    UITabBar.appearance().scrollEdgeAppearance = appearance
-                }
             }
 
             // Floating Action Button
@@ -91,22 +80,33 @@ struct BottomNavBar: View {
                 }
                 .padding(20) // Add padding to increase tap area
                 .contentShape(Circle().size(CGSize(width: 112, height: 112))) // Increase hit area
-                .sheet(isPresented: $showAddSheet) {
-                    if #available(iOS 16.0, *) {
-                        AddView()
-                            .presentationDetents([.height(320)])
-                            .interactiveDismissDisabled(false)
-                            .presentationDragIndicator(.visible)
-                            .presentationCornerRadius(24)
-                            .presentationCompactAdaptation(.none)
-                    } else {
-                        // Fallback for iOS 15 and earlier
-                        AddView()
-                    }
-                }
                 .offset(y: 50)
                 Spacer().frame(height: 40)
             }
+            
+//            if showAddSheet {
+//                Color.black.opacity(0.001)
+//                    .edgesIgnoringSafeArea(.all)
+//                    .onTapGesture {
+//                        showAddSheet = false
+//                    }
+//            }
+        }.sheet(isPresented: $showAddSheet) {
+            AddView()
+                .presentationDetents([sheetHeight], selection: $sheetHeight)
+                .interactiveDismissDisabled(false)
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(24)
+                .presentationCompactAdaptation(.none)
+//                .gesture(
+//                    DragGesture()
+//                    .onChanged { value in
+//                            let translationY = value.translation.height
+//                            if translationY > 0 {
+//                                self.showAddSheet = false
+//                            }
+//                        }
+//                )
         }
     }
 }

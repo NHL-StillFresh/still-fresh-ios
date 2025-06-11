@@ -7,7 +7,6 @@
 
 struct HouseInventoryModel: Decodable {
     let houseInventoryId: String
-    let inventoryType: String?
     let houseId: String
     let productId: String
     let inventoryQuantity: Int
