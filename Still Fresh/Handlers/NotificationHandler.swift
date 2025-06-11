@@ -82,11 +82,11 @@ func setProductNotifications(for houseInventories: [HouseInventoryModelWithProdu
     for houseInventory in houseInventories {
         let dateString = houseInventory.inventory_best_before_date
         
-        if let bestBeforeDate = dateFormatter.date(from: dateString) {
+        if let bestBeforeDate = dateFormatter.date(from: dateString), let notificationDate = Calendar.current.date(byAdding: .day, value: -1, to: bestBeforeDate) {
             let title = "Product Expiring Soon"
             let body = "\(houseInventory.products.product_name) will expire on \(dateFormatter.string(from: bestBeforeDate))"
             
-            var triggerDateComponents = Calendar.current.dateComponents([.year, .month, .day], from: bestBeforeDate)
+            var triggerDateComponents = Calendar.current.dateComponents([.year, .month, .day], from: notificationDate)
             triggerDateComponents.hour = 9
             triggerDateComponents.minute = 0
             

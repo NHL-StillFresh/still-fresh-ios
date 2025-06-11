@@ -132,7 +132,9 @@ class BasketHandler {
             
             groupedItems[section, default: []].append(foodItem)
         }
-                
+        
+        let sortedGroupedItems = groupedItems.sorted { $0.key < $1.key }
+        
         return groupedItems
     }
 }

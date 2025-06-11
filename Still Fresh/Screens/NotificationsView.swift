@@ -14,7 +14,7 @@ struct NotificationsView: View {
                 ScrollView {
                     VStack {
                         Button ("Clear all") {
-                            
+                            alertHandler.alerts = []
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .trailing)
