@@ -4,7 +4,6 @@ import SwiftUI
 
 struct HomeView: View {
     @StateObject private var tipsViewModel = FoodTipsViewModel()
-    @StateObject private var expiringItemsViewModel = ExpiringItemsViewModel()
     @StateObject private var recipesViewModel = RecipesViewModel()
     
     // Animation states
@@ -14,6 +13,9 @@ struct HomeView: View {
     @State private var tipsOffset: CGFloat = 30
     @State private var expiringItemsOffset: CGFloat = 40
     @State private var recipesOffset: CGFloat = 50
+    
+    @State private var foodItems: [FoodItem] = []
+    @State private var showInventoryView = false
     
     var body: some View {
         ScrollView {
@@ -28,9 +30,9 @@ struct HomeView: View {
                 
                 // Expiring items carousel
                 ExpiringItemsCarouselView(
-                    items: expiringItemsViewModel.expiringItems,
+                    items: foodItems,
                     onSeeAllTapped: {
-                        expiringItemsViewModel.seeAllItems()
+                        showInventoryView = true
                     }
                 )
                 .opacity(expiringItemsOpacity)
@@ -54,17 +56,19 @@ struct HomeView: View {
                 tipsViewModel.generateTips()
             }
             
-            // Check if we should animate (only after login)
+            getBasketItems()
+            
             let shouldAnimate = UserDefaults.standard.bool(forKey: "shouldAnimateHomeView")
             
             if shouldAnimate {
                 animateItemsIn()
-                // Reset the flag so we don't animate again
                 UserDefaults.standard.set(false, forKey: "shouldAnimateHomeView")
             } else {
-                // If not coming from login, just show everything immediately
                 showItemsWithoutAnimation()
             }
+        }
+        .sheet(isPresented: $showInventoryView) {
+            BasketView()
         }
 //        .alert(isPresented: Binding(
 //            get: { tipsViewModel.error != nil },
@@ -76,6 +80,18 @@ struct HomeView: View {
 //                dismissButton: .default(Text("OK"))
 //            )
 //        }
+    }
+    
+    private func getBasketItems() {
+        Task {
+            do{
+                self.foodItems = try await BasketHandler.getBasketProducts()
+                
+                await setProductNotificationsFromBasket();
+            } catch {
+                print("Products cannot be loaded: \(error)")
+            }
+        }
     }
     
     private func animateItemsIn() {

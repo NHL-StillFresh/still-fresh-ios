@@ -52,15 +52,36 @@ struct BasketView: View {
                         }
                         .padding()
                     } else {
-                        ForEach(sectionHeaders, id: \.self) { section in
+                        if (sectionHeaders.contains(.today)) {
                             FoodItemSectionView(
-                                section: section,
-                                items: groupedItems[section] ?? [],
+                                section: .today,
+                                items: groupedItems[.today] ?? [],
                                 isEditMode: isEditMode,
                                 selectedItems: selectedItems,
                                 onToggleSelection: toggleSelection
                             )
                         }
+                        
+                        if (sectionHeaders.contains(.tomorrow)) {
+                            FoodItemSectionView(
+                                section: .tomorrow,
+                                items: groupedItems[.tomorrow] ?? [],
+                                isEditMode: isEditMode,
+                                selectedItems: selectedItems,
+                                onToggleSelection: toggleSelection
+                            )
+                        }
+                        
+                        if (sectionHeaders.contains(.later)) {
+                            FoodItemSectionView(
+                                section: .later,
+                                items: groupedItems[.later] ?? [],
+                                isEditMode: isEditMode,
+                                selectedItems: selectedItems,
+                                onToggleSelection: toggleSelection
+                            )
+                        }
+                        
                     }
                 }
                 .padding(.top, 16)

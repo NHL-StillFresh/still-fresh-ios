@@ -132,9 +132,55 @@ class BasketHandler {
             
             groupedItems[section, default: []].append(foodItem)
         }
-        
-        let sortedGroupedItems = groupedItems.sorted { $0.key < $1.key }
-        
+                
         return groupedItems
+    }
+    
+    public static func getBasketProducts() async throws -> [FoodItem] {
+        let result: [HouseInventoryModelWithProducts] = try await SupaClient
+            .from("house_inventories")
+            .select("""
+                    house_inventory_id,
+                    product_id,
+                    inventory_quantity,
+                    inventory_best_before_date,
+                    products (
+                        product_name,
+                        product_image,
+                        product_code,
+                        product_expiration_in_days,
+                        product_nutritional_value,
+                        source_id,
+                        created_at,
+                        updated_at,
+                        product_id
+                    )
+                    """)
+            .eq("house_id", value: BasketHandler.houseId)
+            .execute()
+            .value
+    
+        var foodItems: [FoodItem] = []
+        
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+        for resultItem in result {
+            guard let expiryDate = dateFormatter.date(from: resultItem.inventory_best_before_date) else {
+                continue
+            }
+            
+            let foodItem = FoodItem(
+                id: UUID(),
+                name: resultItem.products.product_name,
+                store: "Unknown",
+                image: resultItem.products.product_image,
+                expiryDate: expiryDate
+            )
+            
+            foodItems.append(foodItem)
+        }
+        
+        return foodItems
     }
 }
