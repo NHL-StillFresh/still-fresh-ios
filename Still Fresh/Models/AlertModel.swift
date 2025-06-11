@@ -6,7 +6,7 @@
 //
 
 // Alert item model
-struct AlertModel: Codable, Identifiable {
+struct AlertModel: Codable {
     let id: Int
     let title: String
     let message: String

@@ -73,7 +73,6 @@ func resetAllProductNotifications() {
 }
 
 func setProductNotifications(for houseInventories: [HouseInventoryModelWithProducts]) {
-    print("product notifications setted")
     let center = UNUserNotificationCenter.current()
 
     let dateFormatter = DateFormatter()

@@ -4,6 +4,7 @@ struct NotificationsView: View {
     @State private var selectedAlert: AlertModel?
     @State private var showDetailView = false
     @StateObject private var alertHandler = AlertHandler()
+    @AppStorage("lastAlertSyncDate") private var lastAlertSyncDate: Date?
     
     private let tealColor = Color(red: 0.04, green: 0.29, blue: 0.29)
     private let lightTealColor = Color(red: 122/255, green: 190/255, blue: 203/255)
@@ -27,8 +28,8 @@ struct NotificationsView: View {
                                 icon: "exclamationmark.triangle.fill",
                                 iconColor: .red,
                                 onTap: {
-                                    selectedAlert = alert
-                                    showDetailView = true
+                                    alertHandler.alerts.removeAll(where: { $0.id == alert.id })
+                                    alertHandler.alerts.append(AlertModel(id: alert.id, title: alert.title, message: alert.message, timeAgo: alert.timeAgo, isRead: true))
                                 }
                             )
                         }
@@ -64,9 +65,38 @@ struct NotificationsView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .sheet(isPresented: $showDetailView) {
-            if let selectedAlert = selectedAlert {
-                AlertDetailView(alert: selectedAlert)
+        .onAppear {
+            Task {
+                do {
+                    if let syncDate = lastAlertSyncDate, Calendar.current.isDateInToday(syncDate) {
+                        return
+                    }
+                    
+                    let dateFormatter = DateFormatter()
+                    dateFormatter.dateFormat = "dd-MM-yyyy"
+                    
+                    let foodItems: [FoodItem] = try await BasketHandler.getBasketProducts()
+                    
+                    var alertId = 0
+                    for foodItem in foodItems {
+                        if foodItem.daysUntilExpiry == 1 {
+                            alertHandler.alerts.append(
+                                AlertModel(
+                                    id: Int(Date().timeIntervalSince1970) + alertId,
+                                    title: "Product Expiring Soon",
+                                    message: "\(foodItem.name) will expire in 1 day",
+                                    timeAgo: dateFormatter.string(from: Date()),
+                                    isRead: false
+                                )
+                            )
+                            alertId += 1
+                        }
+                    }                    
+                    lastAlertSyncDate = Date()
+                    
+                } catch {
+                    print("Error loading products: \(error)")
+                }
             }
         }
     }

@@ -13,7 +13,7 @@ class AlertHandler: ObservableObject {
             saveAlerts()
         }
     }
-
+    
     private let key = "basketAlerts"
 
     init() {
