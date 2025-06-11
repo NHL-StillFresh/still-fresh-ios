@@ -1,15 +1,26 @@
 //
-//  HouseMemberships.swift
+//  GroupMembershipModel.swift
 //  Still Fresh
 //
-//  Created by Jesse van der Voet on 19/05/2025.
-//
 
-struct HouseMembershipModel: Decodable {
+import Foundation
+
+struct HouseMembershipModel: Codable {
     let userId: String
     let houseId: String
-    let membershipJoinDate: String
-    let membershipType: String
-    let createdAt: String
-    let updatedAt: String
+    
+    enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
+        case houseId = "house_id"
+    }
+    
+    static func create(userId: String, houseId: String) -> [String: String] {
+        return [
+            "user_id": userId,
+            "house_id": houseId
+        ]
+    }
 }
+
+// For backward compatibility
+typealias GroupMembershipModel = HouseMembershipModel

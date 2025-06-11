@@ -6,6 +6,7 @@ struct HomeView: View {
     @StateObject private var tipsViewModel = FoodTipsViewModel()
     @StateObject private var expiringItemsViewModel = ExpiringItemsViewModel()
     @StateObject private var recipesViewModel = RecipesViewModel()
+    @StateObject private var appStore = AppStore.shared
     
     // Animation states
     @State private var tipsOpacity = 0.0
@@ -15,39 +16,93 @@ struct HomeView: View {
     @State private var expiringItemsOffset: CGFloat = 40
     @State private var recipesOffset: CGFloat = 50
     
+    // Time-based greeting
+    private var greeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 0..<12:
+            return "Good morning"
+        case 12..<17:
+            return "Good afternoon"
+        default:
+            return "Good evening"
+        }
+    }
+    
+    // House selection items
+    private var houseSelectionItems: [DropdownItem] {
+        appStore.userHouses.map { house in
+            DropdownItem(
+                title: house.houseName,
+                items: nil
+            )
+        }
+    }
+    
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                // Tips carousel
-                TipsCarouselView(tips: tipsViewModel.dailyTips.tips, onRefresh: {
-                    tipsViewModel.forceRefreshTips()
-                })
-                .padding(.top)
-                .opacity(tipsOpacity)
-                .offset(y: tipsOffset)
+        VStack(alignment: .leading, spacing: 16) {
+            // Greeting and House Selection
+            VStack(alignment: .leading, spacing: 8) {
+                Text(greeting)
+                    .font(.title2)
+                    .fontWeight(.medium)
+                    .foregroundColor(.gray)
+                    .padding(.horizontal)
                 
-                // Expiring items carousel
-                ExpiringItemsCarouselView(
-                    items: expiringItemsViewModel.expiringItems,
-                    onSeeAllTapped: {
-                        expiringItemsViewModel.seeAllItems()
+                AnimatedDropdownMenu(
+                    title: appStore.selectedHouse?.houseName ?? "Select House",
+                    items: houseSelectionItems,
+                    onSelect: { item in
+                        // Find the house with matching name and select it
+                        if let house = appStore.userHouses.first(where: { $0.houseName == item.title }) {
+                            Task {
+                                await appStore.selectHouse(houseId: house.houseId)
+                                print("DEBUG [HomeView] House selected - Name: \(house.houseName), ID: \(house.houseId)")
+                            }
+                        }
                     }
                 )
-                .opacity(expiringItemsOpacity)
-                .offset(y: expiringItemsOffset)
-                
-                // Last minute recipes carousel
-                LastMinuteRecipesCarouselView(
-                    recipes: recipesViewModel.lastMinuteRecipes,
-                    onSeeAllTapped: {
-                        recipesViewModel.seeAllRecipes()
-                    }
-                )
-                .opacity(recipesOpacity)
-                .offset(y: recipesOffset)
-                
-                Spacer(minLength: 30)
+                .padding(.horizontal)
             }
+            .padding(.top)
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Tips carousel
+                    TipsCarouselView(tips: tipsViewModel.dailyTips.tips, onRefresh: {
+                        tipsViewModel.forceRefreshTips()
+                    })
+                    .opacity(tipsOpacity)
+                    .offset(y: tipsOffset)
+                    
+                    // Expiring items carousel
+                    ExpiringItemsCarouselView(
+                        items: expiringItemsViewModel.expiringItems,
+                        onSeeAllTapped: {
+                            expiringItemsViewModel.seeAllItems()
+                        }
+                    )
+                    .opacity(expiringItemsOpacity)
+                    .offset(y: expiringItemsOffset)
+                    
+                    // Last minute recipes carousel
+                    LastMinuteRecipesCarouselView(
+                        recipes: recipesViewModel.lastMinuteRecipes,
+                        onSeeAllTapped: {
+                            recipesViewModel.seeAllRecipes()
+                        }
+                    )
+                    .opacity(recipesOpacity)
+                    .offset(y: recipesOffset)
+                    
+                    Spacer(minLength: 30)
+                }
+            }
+        }
+        .task {
+            await appStore.loadUserHouses()
+            print("DEBUG [HomeView] Houses loaded - Count: \(appStore.userHouses.count)")
+            print("DEBUG [HomeView] Selected house: \(appStore.selectedHouse?.houseName ?? "None")")
         }
         .onAppear {
             if tipsViewModel.dailyTips.tips.isEmpty {
@@ -66,16 +121,13 @@ struct HomeView: View {
                 showItemsWithoutAnimation()
             }
         }
-//        .alert(isPresented: Binding(
-//            get: { tipsViewModel.error != nil },
-//            set: { if !$0 { tipsViewModel.error = nil } }
-//        )) {
-//            Alert(
-//                title: Text("Error"),
-//                message: Text(tipsViewModel.error ?? "Unknown error"),
-//                dismissButton: .default(Text("OK"))
-//            )
-//        }
+        .alert("Error", isPresented: .constant(appStore.errorMessage != nil)) {
+            Button("OK", role: .cancel) {
+                appStore.errorMessage = nil
+            }
+        } message: {
+            Text(appStore.errorMessage ?? "Unknown error")
+        }
     }
     
     private func animateItemsIn() {
