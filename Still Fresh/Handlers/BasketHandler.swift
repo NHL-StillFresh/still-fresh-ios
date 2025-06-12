@@ -8,7 +8,8 @@
 import SwiftUI
 
 class BasketHandler {
-    private static var houseId : String = "a4eada31-0c2a-4754-89db-558a1f6d338e"
+    @AppStorage("selectedHouseId") private static var houseId: String = ""
+
     
     public static func addToBasket(products: [ProductModel]) async {
         do {
@@ -26,7 +27,7 @@ class BasketHandler {
                 }
 
                 return InsertHouseInventoryModel(
-                    house_id: BasketHandler.houseId,
+                    house_id: houseId,
                     product_id: product.product_id,
                     inventory_quantity: 1,
                     inventory_best_before_date: dateFormatter.string(from: bestBeforeDate),
@@ -64,7 +65,7 @@ class BasketHandler {
                         product_id
                     )
                     """)
-            .eq("house_id", value: BasketHandler.houseId)
+            .eq("house_id", value: houseId)
             .execute()
             .value
     

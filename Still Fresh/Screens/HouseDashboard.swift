@@ -2,7 +2,7 @@ import SwiftUI
 import Supabase
 
 struct HouseDashboard: View {
-    @StateObject private var appStore = AppStore.shared
+    @StateObject private var appStore = HouseStoreModel.shared
     private let tealColor = Color(UIColor.systemTeal)
     
     // State variables for popups and editing
@@ -441,7 +441,7 @@ struct HouseDashboard: View {
 // Preview provider
 struct HouseDashboard_Previews: PreviewProvider {
     static var previews: some View {
-        let appStore = AppStore.shared
+        let appStore = HouseStoreModel.shared
         
         // Load real data from database
         Task {
