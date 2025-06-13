@@ -4,7 +4,6 @@ import SwiftUI
 
 struct HomeView: View {
     @StateObject private var tipsViewModel = FoodTipsViewModel()
-    @StateObject private var expiringItemsViewModel = ExpiringItemsViewModel()
     @StateObject private var recipesViewModel = RecipesViewModel()
     @StateObject private var appStore = AppStore.shared
     
@@ -39,33 +38,11 @@ struct HomeView: View {
         }
     }
     
+    @State private var foodItems: [FoodItem] = []
+    @State private var showInventoryView = false
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Greeting and House Selection
-            VStack(alignment: .leading, spacing: 8) {
-                Text(greeting)
-                    .font(.title2)
-                    .fontWeight(.medium)
-                    .foregroundColor(.gray)
-                    .padding(.horizontal)
-                
-                AnimatedDropdownMenu(
-                    title: appStore.selectedHouse?.houseName ?? "Select House",
-                    items: houseSelectionItems,
-                    onSelect: { item in
-                        // Find the house with matching name and select it
-                        if let house = appStore.userHouses.first(where: { $0.houseName == item.title }) {
-                            Task {
-                                await appStore.selectHouse(houseId: house.houseId)
-                                print("DEBUG [HomeView] House selected - Name: \(house.houseName), ID: \(house.houseId)")
-                            }
-                        }
-                    }
-                )
-                .padding(.horizontal)
-            }
-            .padding(.top)
-            
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     // Tips carousel
@@ -77,9 +54,9 @@ struct HomeView: View {
                     
                     // Expiring items carousel
                     ExpiringItemsCarouselView(
-                        items: expiringItemsViewModel.expiringItems,
+                        items: foodItems,
                         onSeeAllTapped: {
-                            expiringItemsViewModel.seeAllItems()
+                            showInventoryView = true
                         }
                     )
                     .opacity(expiringItemsOpacity)
@@ -87,10 +64,7 @@ struct HomeView: View {
                     
                     // Last minute recipes carousel
                     LastMinuteRecipesCarouselView(
-                        recipes: recipesViewModel.lastMinuteRecipes,
-                        onSeeAllTapped: {
-                            recipesViewModel.seeAllRecipes()
-                        }
+                        recipes: recipesViewModel.recipes,
                     )
                     .opacity(recipesOpacity)
                     .offset(y: recipesOffset)
@@ -109,15 +83,14 @@ struct HomeView: View {
                 tipsViewModel.generateTips()
             }
             
-            // Check if we should animate (only after login)
+            getBasketItems()
+            
             let shouldAnimate = UserDefaults.standard.bool(forKey: "shouldAnimateHomeView")
             
             if shouldAnimate {
                 animateItemsIn()
-                // Reset the flag so we don't animate again
                 UserDefaults.standard.set(false, forKey: "shouldAnimateHomeView")
             } else {
-                // If not coming from login, just show everything immediately
                 showItemsWithoutAnimation()
             }
         }
@@ -127,6 +100,31 @@ struct HomeView: View {
             }
         } message: {
             Text(appStore.errorMessage ?? "Unknown error")
+        }
+        .sheet(isPresented: $showInventoryView) {
+            BasketView()
+        }
+//        .alert(isPresented: Binding(
+//            get: { tipsViewModel.error != nil },
+//            set: { if !$0 { tipsViewModel.error = nil } }
+//        )) {
+//            Alert(
+//                title: Text("Error"),
+//                message: Text(tipsViewModel.error ?? "Unknown error"),
+//                dismissButton: .default(Text("OK"))
+//            )
+//        }
+    }
+    
+    private func getBasketItems() {
+        Task {
+            do{
+                self.foodItems = try await BasketHandler.getBasketProducts()
+                
+                await setProductNotificationsFromBasket();
+            } catch {
+                print("Products cannot be loaded: \(error)")
+            }
         }
     }
     
