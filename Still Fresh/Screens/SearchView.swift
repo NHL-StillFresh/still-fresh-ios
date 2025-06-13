@@ -4,7 +4,6 @@ struct SearchView: View {
     @StateObject private var recentSearchesHandler = RecentSearchesHandler()
     @State private var searchText = ""
     @State private var isSearching = false
-    @State private var selectedCategory: FoodCategory? = nil
     @State private var showFilterSheet = false
     @State private var filters = SearchFilters()
 
@@ -53,8 +52,6 @@ struct SearchView: View {
     private var defaultContent: some View {
         ScrollView {
             VStack(alignment: .center, spacing: 24) {
-                categoriesSection
-                
                 if !recentSearchesHandler.getRecentSearches().isEmpty {
                     recentSearchesSection
                 } else {
@@ -76,34 +73,6 @@ struct SearchView: View {
         }
     }
     
-    private var categoriesSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Categories")
-                .font(.headline)
-                .padding(.horizontal, 16)
-            
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(FoodCategory.allCases, id: \.self) { category in
-                        CategoryCard(
-                            category: category,
-                            isSelected: selectedCategory == category,
-                            onTap: {
-                                selectedCategory = category
-                                // Simulate search for this category
-                                Task {
-                                    searchResults = await  searchProducts(category: category)
-                                    isSearching = true
-                                }
-                            }
-                        )
-                    }
-                }
-                .padding(.horizontal, 16)
-                .frame(height: 100)
-            }
-        }
-    }
     
     private var recentSearchesSection: some View {
         let recentSearches = recentSearchesHandler.getRecentSearches()
@@ -270,8 +239,6 @@ struct SearchView: View {
                         expiryDate: expiryDate
                     )
                 }
-                
-            } else if let category = category {
                 
             }
             
