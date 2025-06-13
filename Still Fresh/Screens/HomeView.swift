@@ -5,7 +5,7 @@ import SwiftUI
 struct HomeView: View {
     @StateObject private var tipsViewModel = FoodTipsViewModel()
     @StateObject private var recipesViewModel = RecipesViewModel()
-    @StateObject private var appStore = AppStore.shared
+    @StateObject private var appStore = HouseStoreModel.shared
     
     // Animation states
     @State private var tipsOpacity = 0.0

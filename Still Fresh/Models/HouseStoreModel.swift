@@ -1,8 +1,8 @@
 import SwiftUI
 
 @MainActor
-class AppStore: ObservableObject {
-    static let shared = AppStore()
+class HouseStoreModel: ObservableObject {
+    static let shared = HouseStoreModel()
     
     private let dataManager: HouseDataManager
     
