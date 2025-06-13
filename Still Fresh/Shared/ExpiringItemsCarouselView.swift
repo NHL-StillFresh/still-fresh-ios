@@ -4,7 +4,6 @@ struct ExpiringItemsCarouselView: View {
     let items: [FoodItem]
     var onSeeAllTapped: () -> Void
     
-    // Sort items by expiry date (most urgent first)
     private var sortedItems: [FoodItem] {
         items.sorted { $0.daysUntilExpiry < $1.daysUntilExpiry }
     }
@@ -203,14 +202,6 @@ struct ModernFoodItemRow: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
                     HStack(spacing: 8) {
-                        Text(item.store)
-                            .font(.system(size: 14))
-                            .foregroundColor(.secondary)
-                        
-                        Circle()
-                            .fill(Color.secondary)
-                            .frame(width: 2, height: 2)
-                        
                         Text(formattedDate)
                             .font(.system(size: 14))
                             .foregroundColor(.secondary)
