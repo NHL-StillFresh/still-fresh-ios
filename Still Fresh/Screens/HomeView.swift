@@ -87,10 +87,7 @@ struct HomeView: View {
                     
                     // Last minute recipes carousel
                     LastMinuteRecipesCarouselView(
-                        recipes: recipesViewModel.lastMinuteRecipes,
-                        onSeeAllTapped: {
-                            recipesViewModel.seeAllRecipes()
-                        }
+                        recipes: recipesViewModel.recipes,
                     )
                     .opacity(recipesOpacity)
                     .offset(y: recipesOffset)

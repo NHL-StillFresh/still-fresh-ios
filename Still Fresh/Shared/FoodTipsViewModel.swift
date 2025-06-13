@@ -8,7 +8,7 @@ class FoodTipsViewModel: ObservableObject {
     @Published var error: String? = nil
     
     private let apiKey: String = APIKeys.openRouterAPIKey
-    private var cancellables = Set<AnyCancellable>()
+    private var cancellables = Set<AnyCancellable>() 
     private var refreshTimer: Timer?
     private let userDefaults = UserDefaults.standard
     private let tipsCacheKey = "dailyFoodSavingTips"
