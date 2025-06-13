@@ -68,18 +68,18 @@ struct RecipeCardView: View {
                         // Difficulty tag
                         HStack(spacing: 4) {
                             Image(systemName: "chart.bar.fill")
-                                .foregroundColor(recipe.difficulty.color)
+                                .foregroundColor(recipe.difficultyColor)
                                 .font(.system(size: 12))
                             
                             Text(recipe.difficulty.rawValue)
                                 .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(recipe.difficulty.color)
+                                .foregroundColor(recipe.difficultyColor)
                         }
                         .padding(.vertical, 4)
                         .padding(.horizontal, 8)
                         .background(
                             Capsule()
-                                .fill(recipe.difficulty.color.opacity(0.1))
+                                .fill(recipe.difficultyColor.opacity(0.1))
                         )
                         
                         Spacer()

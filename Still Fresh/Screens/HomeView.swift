@@ -37,36 +37,12 @@ struct HomeView: View {
             )
         }
     }
+    
     @State private var foodItems: [FoodItem] = []
     @State private var showInventoryView = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Greeting and House Selection
-            VStack(alignment: .leading, spacing: 8) {
-                Text(greeting)
-                    .font(.title2)
-                    .fontWeight(.medium)
-                    .foregroundColor(.gray)
-                    .padding(.horizontal)
-                
-                AnimatedDropdownMenu(
-                    title: appStore.selectedHouse?.houseName ?? "Select House",
-                    items: houseSelectionItems,
-                    onSelect: { item in
-                        // Find the house with matching name and select it
-                        if let house = appStore.userHouses.first(where: { $0.houseName == item.title }) {
-                            Task {
-                                await appStore.selectHouse(houseId: house.houseId)
-                                print("DEBUG [HomeView] House selected - Name: \(house.houseName), ID: \(house.houseId)")
-                            }
-                        }
-                    }
-                )
-                .padding(.horizontal)
-            }
-            .padding(.top)
-            
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     // Tips carousel
@@ -78,9 +54,9 @@ struct HomeView: View {
                     
                     // Expiring items carousel
                     ExpiringItemsCarouselView(
-                        items: expiringItemsViewModel.expiringItems,
+                        items: foodItems,
                         onSeeAllTapped: {
-                            expiringItemsViewModel.seeAllItems()
+                            showInventoryView = true
                         }
                     )
                     .opacity(expiringItemsOpacity)
