@@ -7,8 +7,7 @@ struct LastMinuteRecipesCarouselView: View {
     @State private var dragOffset: CGFloat = 0
     @State private var scrollOffset: CGFloat = 0
     @State private var isUserScrolling = false
-    @State private var selectedRecipe: Recipe? = nil
-    @State private var showFullRecipe: Bool = false
+
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -94,93 +93,6 @@ struct LastMinuteRecipesCarouselView: View {
                 }
                 .frame(height: 250)
             }
-        }.sheet(isPresented: $showFullRecipe) {
-            if selectedRecipe == nil {
-                NoRecipeView()
-            } else {
-                RecipeSheetView(recipe: selectedRecipe!)
-            }
-        }
-    }
-}
-
-struct NoRecipeView: View {
-    var body: some View {
-        Text("No recipes found")
-    }
-}
-
-struct RecipeSheetView: View {
-    let recipe: Recipe
-    
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                // Image
-                Image(recipe.imageName)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(height: 200)
-                    .clipped()
-                    .cornerRadius(12)
-                
-                // Title and Description
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(recipe.name)
-                        .font(.title)
-                        .fontWeight(.bold)
-                    
-                    Text(recipe.description)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                
-                // Tags
-                if !recipe.tags.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack {
-                            ForEach(recipe.tags, id: \.self) { tag in
-                                Text(tag)
-                                    .font(.caption)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 5)
-                                    .background(Color.gray.opacity(0.2))
-                                    .cornerRadius(8)
-                            }
-                        }
-                    }
-                }
-                
-                // Info Row (Time + Difficulty)
-                HStack {
-                    Label(recipe.cookingTimeText, systemImage: "clock")
-                    Spacer()
-                    Label(recipe.difficulty.rawValue.capitalized, systemImage: "flame.fill")
-                        .foregroundColor(recipe.difficultyColor)
-                }
-                .font(.subheadline)
-                
-                // Ingredients
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Ingredients")
-                        .font(.headline)
-                    
-                    ForEach(recipe.ingredients, id: \.self) { ingredient in
-                        Text("• \(ingredient)")
-                    }
-                }
-                
-                // Steps
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Steps")
-                        .font(.headline)
-                    
-                    ForEach(recipe.cookingSteps.components(separatedBy: "\n"), id: \.self) { step in
-                        Text(step)
-                    }
-                }
-            }
-            .padding()
         }
     }
 }

@@ -6,6 +6,7 @@ class RecipesViewModel: ObservableObject {
     @Published var recipes: [Recipe] = []
     @Published var isLoading: Bool = false
     @Published var error: String? = nil
+    @AppStorage("recipeLastUpdatedDate") private var lastUpdated: Date?
     
     private let apiKey: String = APIKeys.openRouterAPIKey
 
@@ -13,12 +14,20 @@ class RecipesViewModel: ObservableObject {
     private let recipeCacheKey = "cachedRecipes"
 
     init() {
-        generateRecipe()
+        loadCachedRecipes()
+        
+        if shouldGenerateNewTips() {
+            generateRecipe()
+        }
     }
     
+    private func shouldGenerateNewTips() -> Bool {
+        let calendar = Calendar.current
+        return recipes.isEmpty || lastUpdated == nil || !calendar.isDateInToday(lastUpdated!)
+    }
+     
     func generateRecipe() {
         guard !isLoading else { return }
-        
         
         Task {
             await fetchRecipeFromAPI(products: try! await BasketHandler.getBasketProducts())
@@ -27,11 +36,16 @@ class RecipesViewModel: ObservableObject {
     }
     
     func fetchRecipeFromAPI(products: [FoodItem]) async {
+        await MainActor.run { self.isLoading = true }
+        self.error = nil
+
         let messages = AIHandler.createRecipePrompt(products: products)
 
         guard let request = AIHandler.buildOpenRouterRequest(apiKey: apiKey, messages: messages) else {
-            self.error = "Invalid API request"
-            self.isLoading = false
+            await MainActor.run {
+                self.error = "Invalid API request"
+                self.isLoading = false
+            }
             return
         }
 
@@ -43,30 +57,42 @@ class RecipesViewModel: ObservableObject {
                   let firstChoice = choices.first,
                   let message = firstChoice["message"] as? [String: Any],
                   let content = message["content"] as? String else {
-                self.error = "Invalid response format"
-                self.isLoading = false
+                await MainActor.run {
+                    self.error = "Invalid response format"
+                    self.isLoading = false
+                }
                 return
             }
 
             // Decode an array of CodableRecipe from content string
-            if let data = content.data(using: .utf8),
-               let decodedArray = try? JSONDecoder().decode([CodableRecipe].self, from: data) {
-                
-                // Convert [CodableRecipe] to [Recipe]
-                let recipes = decodedArray.map { $0.toRecipe() }
-                self.recipes = recipes
-                cacheRecipes()
+            if let contentData = content.data(using: .utf8),
+               let decodedArray = try? JSONDecoder().decode([CodableRecipe].self, from: contentData) {
+
+                let mappedRecipes = decodedArray.map { $0.toRecipe() }
+
+                await MainActor.run {
+                    self.recipes = mappedRecipes
+                    self.lastUpdated = Date()
+                    self.cacheRecipes()
+                }
 
             } else {
-                self.error = "Failed to decode recipes array"
+                await MainActor.run {
+                    self.error = "Failed to decode recipes array"
+                }
             }
 
         } catch {
-            self.error = "Error fetching data: \(error.localizedDescription)"
+            await MainActor.run {
+                self.error = "Error fetching data: \(error.localizedDescription)"
+            }
         }
 
-        self.isLoading = false
+        await MainActor.run {
+            self.isLoading = false
+        }
     }
+
 
     private func loadCachedRecipes() {
         if let data = userDefaults.data(forKey: recipeCacheKey),
@@ -85,14 +111,5 @@ class RecipesViewModel: ObservableObject {
     func loadDefaultRecipes() {
         self.recipes = Recipe.sampleRecipes
         cacheRecipes()
-    }
-
-    func refreshRecipes() {
-        // Replace with actual logic for fetching from API if needed
-        isLoading = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            self.loadDefaultRecipes()
-            self.isLoading = false
-        }
     }
 }

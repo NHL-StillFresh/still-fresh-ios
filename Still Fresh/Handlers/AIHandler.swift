@@ -58,7 +58,7 @@ class AIHandler {
         Based on the following ingredients:
         \(productList)
 
-        Suggest **5 different** creative recipes using mostly these ingredients. For each recipe, include:
+        Suggest **2 different** creative recipes using mostly these ingredients. For each recipe, include:
         - A name for the recipe
         - A short description
         - A cooking time in minutes (max 60)
@@ -66,7 +66,7 @@ class AIHandler {
         - A list of ingredients
         - A detailed list of numbered cooking steps
 
-        Respond **only** in JSON with an array of recipes in the following format:
+        Respond **only** in JSON with an array of recipes in the following format, return as plain text, keep it within the 200 tokens limit:
         [
           {
             "name": "...",
@@ -81,14 +81,6 @@ class AIHandler {
             "description": "...",
             "cookingTime": 30,
             "difficulty": "medium",
-            "ingredients": ["...", "..."],
-            "cookingSteps": "1. ...\\n2. ...\\n3. ..."
-          },
-          {
-            "name": "...",
-            "description": "...",
-            "cookingTime": 45,
-            "difficulty": "hard",
             "ingredients": ["...", "..."],
             "cookingSteps": "1. ...\\n2. ...\\n3. ..."
           }
@@ -117,7 +109,7 @@ class AIHandler {
         let body: [String: Any] = [
             "model": modelName,
             "messages": messages,
-            "max_tokens": 200,
+            "max_tokens": 1000,
             "temperature": 0.7,
             "top_p": 1,
             "stream": false
