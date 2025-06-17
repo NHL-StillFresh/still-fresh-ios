@@ -157,6 +157,7 @@ struct Still_FreshApp: App {
     init() {
         UIView.appearance().overrideUserInterfaceStyle = .light
         UNUserNotificationCenter.current().delegate = notificationDelegate
+        UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")
     }
     
     var body: some Scene {
