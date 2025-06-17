@@ -35,15 +35,15 @@ class HouseDataManager: ObservableObject {
             
             // Ensure the auth token is fresh to avoid RLS permission issues
             let expiresAt = session.expiresAt
-            if expiresAt != nil {
-                let expiryDate = Date(timeIntervalSince1970: expiresAt)
-                let fiveMinutesFromNow = Date().addingTimeInterval(5 * 60)
-                
-                // If token expires in less than 5 minutes, refresh it
-                if expiryDate < fiveMinutesFromNow {
-                    _ = try await SupaClient.auth.refreshSession()
-                }
+            
+            let expiryDate = Date(timeIntervalSince1970: expiresAt)
+            let fiveMinutesFromNow = Date().addingTimeInterval(5 * 60)
+            
+            // If token expires in less than 5 minutes, refresh it
+            if expiryDate < fiveMinutesFromNow {
+                _ = try await SupaClient.auth.refreshSession()
             }
+            
             
             lastAuthTime = Date()
         } catch {
@@ -56,7 +56,7 @@ class HouseDataManager: ObservableObject {
         try await authenticate()
         
         // Get house details
-        let houseResponse = try await SupaClient.database
+        let houseResponse = try await SupaClient
             .from("houses")
             .select("*")
             .eq("house_id", value: houseId)
@@ -130,7 +130,7 @@ class HouseDataManager: ObservableObject {
         let userId = try await getCurrentUserId()
         
         // Check if the house exists
-        let houseCheckResponse = try await SupaClient.database
+        let houseCheckResponse = try await SupaClient
             .from("houses")
             .select("house_id")
             .eq("house_id", value: houseId)
@@ -143,7 +143,7 @@ class HouseDataManager: ObservableObject {
         // Create membership
         let membershipData = HouseMembershipModel.create(userId: userId.uuidString, houseId: houseId)
         
-        _ = try await SupaClient.database
+        _ = try await SupaClient
             .from("house_membership")
             .insert(membershipData)
             .execute()
@@ -154,7 +154,7 @@ class HouseDataManager: ObservableObject {
         try await authenticate()
         let userId = try await getCurrentUserId()
         
-        let membershipResponse = try await SupaClient.database
+        let membershipResponse = try await SupaClient
             .from("house_membership")
             .select("*")
             .eq("user_id", value: userId.uuidString)
@@ -174,7 +174,7 @@ class HouseDataManager: ObservableObject {
     // Get all members of a house
     func getHouseMembers(houseId: String) async throws -> [ProfileModel] {
         // Get all members of this house - with proper RLS, this should only return memberships the user can see
-        let allMembersResponse = try await SupaClient.database
+        let allMembersResponse = try await SupaClient
             .from("house_membership")
             .select("user_id")
             .eq("house_id", value: houseId)
@@ -198,7 +198,7 @@ class HouseDataManager: ObservableObject {
         var profiles: [ProfileModel] = []
         
         for memberId in memberIds {
-            let userResponse = try await SupaClient.database
+            let userResponse = try await SupaClient
                 .from("profiles")
                 .select("*")
                 .eq("user_id", value: memberId)
@@ -257,7 +257,7 @@ class HouseDataManager: ObservableObject {
         let userId = try await getCurrentUserId()
         
         // Delete the membership record
-        _ = try await SupaClient.database
+        _ = try await SupaClient
             .from("house_membership")
             .delete()
             .eq("user_id", value: userId.uuidString)
@@ -273,7 +273,7 @@ class HouseDataManager: ObservableObject {
         try await authenticate()
         
         // Delete the membership record
-        _ = try await SupaClient.database
+        _ = try await SupaClient
             .from("house_membership")
             .delete()
             .eq("user_id", value: userId)
@@ -293,7 +293,7 @@ class HouseDataManager: ObservableObject {
         try await authenticate()
         
         // Update the house name
-        _ = try await SupaClient.database
+        _ = try await SupaClient
             .from("houses")
             .update(["house_name": newName])
             .eq("house_id", value: houseId)

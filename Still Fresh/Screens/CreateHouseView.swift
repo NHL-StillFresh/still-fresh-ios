@@ -3,7 +3,7 @@ import SwiftUI
 struct CreateHouseView: View {
     @Binding var isPresented: Bool
     var onCreated: () -> Void
-    @StateObject private var appStore = HouseStoreModel.shared
+    @StateObject private var appStore = HouseStoreModel()
     
     @State private var houseName = ""
     @State private var houseAddress = ""

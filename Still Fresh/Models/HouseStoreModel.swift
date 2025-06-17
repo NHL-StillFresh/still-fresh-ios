@@ -1,10 +1,8 @@
 import SwiftUI
 
 @MainActor
-class HouseStoreModel: ObservableObject {
-    static let shared = HouseStoreModel()
-    
-    private let dataManager: HouseDataManager
+class HouseStoreModel: ObservableObject {    
+    let dataManager: HouseDataManager
     
     @Published var selectedHouse: HouseModel?
     @Published var userHouses: [HouseModel] = []
@@ -17,7 +15,7 @@ class HouseStoreModel: ObservableObject {
     
     @AppStorage("selectedHouseId") var storedHouseId: String?
     
-    private init(dataManager: HouseDataManager = HouseDataManager()) {
+    init(dataManager: HouseDataManager = HouseDataManager()) {
         self.dataManager = dataManager
         
         // Load stored house ID and data on init
@@ -31,7 +29,7 @@ class HouseStoreModel: ObservableObject {
     func loadUserHouses() async {
         isLoading = true
         errorMessage = nil
-        
+                
         do {
             let memberships = try await dataManager.loadMemberships()
             var houses: [HouseModel] = []
@@ -93,7 +91,7 @@ class HouseStoreModel: ObservableObject {
             house_image: ""
         )
         
-        let response = try await SupaClient.database
+        let response = try await SupaClient
             .from("houses")
             .insert(houseData)
             .select()
@@ -116,7 +114,7 @@ class HouseStoreModel: ObservableObject {
             house_id: houseId
         )
         
-        _ = try await SupaClient.database
+        _ = try await SupaClient
             .from("house_membership")
             .insert(membershipData)
             .execute()

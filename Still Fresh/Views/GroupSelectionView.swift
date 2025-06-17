@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct GroupSelectionView: View {
-    @StateObject private var appStore = HouseStoreModel.shared
+    @StateObject private var appStore = HouseStoreModel()
     
     var body: some View {
         VStack {
