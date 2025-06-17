@@ -95,18 +95,10 @@ struct SettingsView: View {
                         
                     }
                     NavigationLink {
-                                                HouseDashboard()
-
-
-                                            } label: {
-
-
-                                                SettingRow(icon: "house.fill", iconColor: tealColor, title: "House Dashboard")
-
-
-                                            }
-        
-                    
+                        HouseDashboard()
+                    } label: {
+                        SettingRow(icon: "house.fill", iconColor: tealColor, title: "House Dashboard")
+                    }
                 } header: {
                     Text("PREFERENCES")
                         .font(.system(size: 14, weight: .medium))
