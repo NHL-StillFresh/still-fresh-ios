@@ -30,7 +30,11 @@ class RecipesViewModel: ObservableObject {
         guard !isLoading else { return }
         
         Task {
-            await fetchRecipeFromAPI(products: try! await BasketHandler.getBasketProducts())
+            do {
+                await fetchRecipeFromAPI(products: try await BasketHandler.getBasketProducts())
+            } catch {
+                print("Error fetching recipe: \(error)")
+            }
         }
         
     }
