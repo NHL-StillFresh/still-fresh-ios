@@ -9,6 +9,7 @@ struct SettingsView: View {
     @Environment(\.presentationMode) var presentationMode
     @ObservedObject var userState: UserStateModel
     @AppStorage("notificationsEnabled") private var notifications = false
+    @AppStorage("selectedHouseId") var storedHouseId: String?
     @State private var darkMode = false
     @State private var expiryNotificationDays = 3
     @State private var selectedUnit = "Days"
@@ -176,6 +177,7 @@ struct SettingsView: View {
                         primaryButton: .destructive(Text("Sign Out")) {
                             Task {
                                 try? await SupaClient.auth.signOut()
+                                storedHouseId = nil
                                 userState.invalidateSession()
                             }
                         },

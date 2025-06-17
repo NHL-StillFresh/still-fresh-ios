@@ -5,7 +5,6 @@ struct HouseDashboard: View {
     @StateObject private var appStore = HouseStoreModel()
     private let tealColor = Color(UIColor.systemTeal)
     
-    // State variables for popups and editing
     @State private var showLeaveConfirmation = false
     @State private var showRemoveMemberConfirmation = false
     @State private var showCreateHouseSheet = false
@@ -14,8 +13,8 @@ struct HouseDashboard: View {
     @State private var editedName = ""
     @State private var showCopiedToast = false
     @State private var joinHouseId = ""
-
-    // House selection items
+    @Environment(\.dismiss) private var dismiss
+    
     private var houseSelectionItems: [DropdownItem] {
         appStore.userHouses.map { house in
             DropdownItem(
@@ -36,13 +35,24 @@ struct HouseDashboard: View {
                     VStack(spacing: 24) {
                         ScrollView {
                             VStack(spacing: 24) {
-                                // House info card
                                 groupInfoCard
                                     .padding(.horizontal, 16)
                                 
-                                // Members section
                                 membersSection
                                     .padding(.horizontal, 16)
+                                
+                                Button(action: {
+                                    dismiss()
+                                }) {
+                                    Text("Close")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 20)
+                                        .padding(.vertical, 12)
+                                        .background(Color(red: 0.04, green: 0.29, blue: 0.29))
+                                        .cornerRadius(12)
+                                }
+                                .padding(.top, 8)
                                 
                                 Spacer(minLength: 40)
                             }
