@@ -18,7 +18,6 @@ struct SettingsView: View {
     @State private var showErrorMessage = false
     @State private var alertType: AlertType = .error
     @State private var showCheckProductsView = false
-    @AppStorage("selectedHouseId") var selectedHouseId: String?
     
     private let tealColor = Color(red: 122/255, green: 190/255, blue: 203/255)
     private let units = ["Days", "Weeks"]
@@ -65,9 +64,6 @@ struct SettingsView: View {
                         .sheet(isPresented: $showEditProfile) {
                             ProfileEditView(username: $username, email: $email)
                         }
-                        .sheet(isPresented: $showCheckProductsView) {
-                            CheckProductsView(productLines: ["Jumbo Cola", "Kaasstengels", "Pepsi", "Albert Heijn Milk", "Test Product"])
-                        }
                     }
                     .padding(.vertical, 6)
                 } header: {
@@ -97,68 +93,9 @@ struct SettingsView: View {
                             }
                         }
                     }
-
-
                     
-                    Toggle(isOn: $darkMode) {
-                        SettingRow(icon: "moon.fill", iconColor: .purple, title: "Dark Mode")
-                    }
-                    .tint(tealColor)
-                    
-                    HStack {
-                        SettingRow(icon: "exclamationmark.circle.fill", iconColor: .red, title: "Expiry Alert Threshold")
-                        
-                        Spacer()
-                        
-                        Picker("", selection: $expiryNotificationDays) {
-                            ForEach(1...7, id: \.self) { day in
-                                Text("\(day)").tag(day)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .labelsHidden()
-                        
-                        Picker("", selection: $selectedUnit) {
-                            ForEach(units, id: \.self) { unit in
-                                Text(unit).tag(unit)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .labelsHidden()
-                    }
-
-                    NavigationLink {
-                        HouseDashboard()
-                    } label: {
-                        SettingRow(icon: "house.fill", iconColor: tealColor, title: "House Dashboard")
-                    }
                 } header: {
                     Text("PREFERENCES")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.secondary)
-                }
-                
-                // Food & Tracking
-                Section {
-                    NavigationLink {
-                        Text("Food Categories")
-                    } label: {
-                        SettingRow(icon: "tag.fill", iconColor: .blue, title: "Food Categories")
-                    }
-                    
-                    NavigationLink {
-                        Text("Favorite Stores")
-                    } label: {
-                        SettingRow(icon: "cart.fill", iconColor: .green, title: "Favorite Stores")
-                    }
-                    
-                    NavigationLink {
-                        Text("Storage Locations")
-                    } label: {
-                        SettingRow(icon: "archivebox.fill", iconColor: .brown, title: "Storage Locations")
-                    }
-                } header: {
-                    Text("FOOD TRACKING")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.secondary)
                 }
@@ -166,22 +103,11 @@ struct SettingsView: View {
                 // App Info & Support
                 Section {
                     NavigationLink {
-                        Text("About Still Fresh")
+                        AboutView()
                     } label: {
                         SettingRow(icon: "info.circle.fill", iconColor: tealColor, title: "About Still Fresh")
                     }
                     
-                    NavigationLink {
-                        Text("Help & Support")
-                    } label: {
-                        SettingRow(icon: "questionmark.circle.fill", iconColor: .yellow, title: "Help & Support")
-                    }
-                    
-                    NavigationLink {
-                        Text("Privacy Policy")
-                    } label: {
-                        SettingRow(icon: "lock.fill", iconColor: .gray, title: "Privacy Policy")
-                    }
                 } header: {
                     Text("INFO & SUPPORT")
                         .font(.system(size: 14, weight: .medium))
@@ -216,18 +142,7 @@ struct SettingsView: View {
                             Spacer()
                         }
                     }
-                    
-                    Button(action: {
-                        showCheckProductsView = true
-                    }) {
-                        HStack {
-                            Spacer()
-                            Text("Test CheckProductsView (DEBUG ONLY)")
-                                .foregroundColor(.blue)
-                                .font(.system(size: 16, weight: .medium))
-                            Spacer()
-                        }
-                    }
+
                 }
                 #endif
             }
@@ -257,14 +172,6 @@ struct SettingsView: View {
                             Task {
                                 try? await SupaClient.auth.signOut()
                                 userState.invalidateSession()
-                                                                
-                                Task {
-                                    if let houseId = HouseStoreModel.shared.selectedHouse?.houseId {
-                                        try? await HouseStoreModel.shared.leaveHouse(houseId: houseId)
-                                    }
-                                }
-                                
-                                selectedHouseId = nil
                             }
                         },
                         secondaryButton: .cancel()
