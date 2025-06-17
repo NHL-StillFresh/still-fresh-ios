@@ -3,6 +3,8 @@ import SwiftUI
 // Import custom AppState
 
 struct HomeView: View {
+    @AppStorage("selectedHouseId") var selectedHouseId: String?
+    
     @StateObject private var tipsViewModel = FoodTipsViewModel()
     @StateObject private var recipesViewModel = RecipesViewModel()
     @StateObject private var appStore = HouseStoreModel.shared
@@ -15,31 +17,32 @@ struct HomeView: View {
     @State private var expiringItemsOffset: CGFloat = 40
     @State private var recipesOffset: CGFloat = 50
     
-    // Time-based greeting
-    private var greeting: String {
-        let hour = Calendar.current.component(.hour, from: Date())
-        switch hour {
-        case 0..<12:
-            return "Good morning"
-        case 12..<17:
-            return "Good afternoon"
-        default:
-            return "Good evening"
-        }
-    }
-    
-    // House selection items
-    private var houseSelectionItems: [DropdownItem] {
-        appStore.userHouses.map { house in
-            DropdownItem(
-                title: house.houseName,
-                items: nil
-            )
-        }
-    }
+//    // Time-based greeting
+//    private var greeting: String {
+//        let hour = Calendar.current.component(.hour, from: Date())
+//        switch hour {
+//        case 0..<12:
+//            return "Good morning"
+//        case 12..<17:
+//            return "Good afternoon"
+//        default:
+//            return "Good evening"
+//        }
+//    }
+//    
+//    // House selection items
+//    private var houseSelectionItems: [DropdownItem] {
+//        appStore.userHouses.map { house in
+//            DropdownItem(
+//                title: house.houseName,
+//                items: nil
+//            )
+//        }
+//    }
     
     @State private var foodItems: [FoodItem] = []
     @State private var showInventoryView = false
+    @State private var showHouseDashboardView = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -79,6 +82,10 @@ struct HomeView: View {
             print("DEBUG [HomeView] Selected house: \(appStore.selectedHouse?.houseName ?? "None")")
         }
         .onAppear {
+            if selectedHouseId == nil {
+                showHouseDashboardView = true
+            }
+            
             if tipsViewModel.dailyTips.tips.isEmpty {
                 tipsViewModel.generateTips()
             }
@@ -103,6 +110,9 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showInventoryView) {
             BasketView()
+        }
+        .sheet(isPresented: $showHouseDashboardView) {
+            HouseDashboard()
         }
 //        .alert(isPresented: Binding(
 //            get: { tipsViewModel.error != nil },

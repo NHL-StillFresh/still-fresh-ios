@@ -14,7 +14,7 @@ struct HouseDashboard: View {
     @State private var editedName = ""
     @State private var showCopiedToast = false
     @State private var joinHouseId = ""
-    
+
     // House selection items
     private var houseSelectionItems: [DropdownItem] {
         appStore.userHouses.map { house in
@@ -34,22 +34,6 @@ struct HouseDashboard: View {
                     joinGroupView
                 } else {
                     VStack(spacing: 24) {
-                        // House selection dropdown at the top
-                        AnimatedDropdownMenu(
-                            title: appStore.selectedHouse?.houseName ?? "Select House",
-                            items: houseSelectionItems,
-                            onSelect: { item in
-                                if let house = appStore.userHouses.first(where: { $0.houseName == item.title }) {
-                                    Task {
-                                        await appStore.selectHouse(houseId: house.houseId)
-                                        print("DEBUG [HouseDashboard] House selected - Name: \(house.houseName), ID: \(house.houseId)")
-                                    }
-                                }
-                            }
-                        )
-                        .padding(.horizontal, 16)
-                        .padding(.top, 8)
-                        
                         ScrollView {
                             VStack(spacing: 24) {
                                 // House info card
@@ -68,16 +52,16 @@ struct HouseDashboard: View {
             }
             .navigationTitle("House Dashboard")
             .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        showCreateHouseSheet = true
-                    }) {
-                        Image(systemName: "plus")
-                            .foregroundColor(tealColor)
-                    }
-                }
-            }
+//            .toolbar {
+//                ToolbarItem(placement: .navigationBarTrailing) {
+//                    Button(action: {
+//                        showCreateHouseSheet = true
+//                    }) {
+//                        Image(systemName: "plus")
+//                            .foregroundColor(tealColor)
+//                    }
+//                }
+//            }
             .task {
                 await appStore.loadUserHouses()
                 print("DEBUG [HouseDashboard] Houses loaded - Count: \(appStore.userHouses.count)")
@@ -207,7 +191,7 @@ struct HouseDashboard: View {
                     .background(Color(.systemGray6))
                     .cornerRadius(10)
                     .padding(.horizontal, 32)
-                    .onChange(of: joinHouseId) { newValue in
+                    .onChange(of: joinHouseId) { _, newValue in
                         appStore.joinHouseId = newValue
                     }
                 

@@ -18,6 +18,7 @@ struct SettingsView: View {
     @State private var showErrorMessage = false
     @State private var alertType: AlertType = .error
     @State private var showCheckProductsView = false
+    @AppStorage("selectedHouseId") var selectedHouseId: String?
     
     private let tealColor = Color(red: 122/255, green: 190/255, blue: 203/255)
     private let units = ["Days", "Weeks"]
@@ -256,6 +257,14 @@ struct SettingsView: View {
                             Task {
                                 try? await SupaClient.auth.signOut()
                                 userState.invalidateSession()
+                                                                
+                                Task {
+                                    if let houseId = HouseStoreModel.shared.selectedHouse?.houseId {
+                                        try? await HouseStoreModel.shared.leaveHouse(houseId: houseId)
+                                    }
+                                }
+                                
+                                selectedHouseId = nil
                             }
                         },
                         secondaryButton: .cancel()

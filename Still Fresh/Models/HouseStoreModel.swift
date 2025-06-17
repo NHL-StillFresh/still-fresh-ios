@@ -15,7 +15,7 @@ class HouseStoreModel: ObservableObject {
     @Published var isJoiningHouse: Bool = false
     @Published var joinSuccess: Bool = false
     
-    @AppStorage("selectedHouseId") private var storedHouseId: String?
+    @AppStorage("selectedHouseId") var storedHouseId: String?
     
     private init(dataManager: HouseDataManager = HouseDataManager()) {
         self.dataManager = dataManager
