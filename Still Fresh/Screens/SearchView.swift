@@ -14,6 +14,8 @@ struct SearchView: View {
     
     @State private var showErrorAlert = false
     @State private var showSuccesAlert = false
+    @State private var showLoading = false
+
     @Environment(\.dismiss) private var dismiss
     
     
@@ -181,16 +183,26 @@ struct SearchView: View {
                 // List of search results
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        ForEach(searchResults) { item in
-                            FoodItemRowView(item: item, onClickFunction: {
-                                Task {
-                                    if await SupabaseProductHandler.addAllSelectedProducts(selectedProducts: [:], knownProducts: [item.name]) {
-                                        showSuccesAlert = true
-                                    } else {
-                                        showErrorAlert = true
+                        if (showLoading) {
+                            ProgressView()
+                            Spacer()
+                            Text("We are adding your products...")
+                        } else {
+                            ForEach(searchResults) { item in
+                                FoodItemRowView(item: item, onClickFunction: {
+                                    Task {
+                                        showLoading = true
+                                        
+                                        if await SupabaseProductHandler.addAllSelectedProducts(selectedProducts: [:], knownProducts: [item.name]) {
+                                            showSuccesAlert = true
+                                        } else {
+                                            showErrorAlert = true
+                                        }
+                                        
+                                        showLoading = false
                                     }
-                                }
-                            })
+                                })
+                            }
                         }
                     }
                     .padding(.horizontal, 16)

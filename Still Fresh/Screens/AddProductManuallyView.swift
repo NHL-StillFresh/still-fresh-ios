@@ -190,7 +190,7 @@ struct AddProductManuallyView: View {
             Button("Close") {
                 dismiss()
             }
-        }\
+        }
         .alert("Error adding your products to your basket", isPresented: $showErrorAlert) {
             Button("Close", role: .cancel) {}
         }
