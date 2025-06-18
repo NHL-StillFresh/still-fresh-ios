@@ -55,6 +55,8 @@ class BasketHandler {
                     product_id,
                     inventory_quantity,
                     inventory_best_before_date,
+                    inventory_purchase_date,
+                    created_at,
                     products (
                         product_name,
                         product_image,
@@ -82,6 +84,8 @@ class BasketHandler {
                     product_id,
                     inventory_quantity,
                     inventory_best_before_date,
+                    inventory_purchase_date,
+                    created_at,
                     products (
                         product_name,
                         product_image,
@@ -145,6 +149,8 @@ class BasketHandler {
                     product_id,
                     inventory_quantity,
                     inventory_best_before_date,
+                    inventory_purchase_date,
+                    created_at,
                     products (
                         product_name,
                         product_image,
