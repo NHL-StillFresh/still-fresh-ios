@@ -21,7 +21,7 @@ struct BasketView: View {
                             
                             ProgressView()
                             
-                            Text("We are loading your basket...")
+                            Text("We are loading your inventory...")
                         }
                     } else if (sectionHeaders.isEmpty) {
                         VStack(spacing: 24) {

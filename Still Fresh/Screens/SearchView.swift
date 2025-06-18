@@ -198,12 +198,12 @@ struct SearchView: View {
                 }
             }
         }
-        .alert("Products succesfully added to your basket!", isPresented: $showSuccesAlert) {
+        .alert("Products succesfully added to your inventory!", isPresented: $showSuccesAlert) {
             Button("Close") {
                 dismiss()
             }
         }
-        .alert("Error adding your products to your basket", isPresented: $showSuccesAlert) {
+        .alert("Error adding your products to your inventory", isPresented: $showSuccesAlert) {
             Button("Close", role: .cancel) {}
         }
     }

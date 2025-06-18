@@ -31,5 +31,5 @@ struct TitleNavBar: View {
 }
 
 #Preview {
-    TitleNavBar(title: "Basket", userState: UserStateModel())
+    TitleNavBar(title: "Inventory", userState: UserStateModel())
 }

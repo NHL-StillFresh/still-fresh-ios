@@ -70,7 +70,7 @@ struct StartView : View {
     private func tabTitle(for tab: Int) -> String {
         switch tab {
         case 0: return "Home"
-        case 1: return "Basket"
+        case 1: return "Inventory"
         case 3: return "Search"
         case 4: return "Notifications"
         default: return ""
