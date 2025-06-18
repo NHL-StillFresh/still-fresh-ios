@@ -10,5 +10,7 @@ struct HouseInventoryModelWithProducts: Decodable {
     let product_id: String
     let inventory_quantity: Int
     let inventory_best_before_date: String
+    let inventory_purchase_date: String?
+    let created_at: String
     let products: ProductModel
 }

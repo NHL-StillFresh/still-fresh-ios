@@ -18,6 +18,9 @@ struct SettingsView: View {
     @State private var showErrorMessage = false
     @State private var alertType: AlertType = .error
     @State private var showCheckProductsView = false
+    @State private var showWrapped = false
+    
+    @StateObject private var wrappedHandler = WrappedAnalyticsHandler()
     
     private let tealColor = Color(red: 122/255, green: 190/255, blue: 203/255)
     private let units = ["Days", "Weeks"]
@@ -105,6 +108,40 @@ struct SettingsView: View {
                         .foregroundColor(.secondary)
                 }
                 
+                // Still Fresh Wrapped Section
+                Section {
+                    if wrappedHandler.isGenerating {
+                        HStack {
+                            Spacer()
+                            VStack(spacing: 12) {
+                                ProgressView()
+                                    .scaleEffect(1.2)
+                                    .tint(tealColor)
+                                Text("Generating your year in review...")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 40)
+                            Spacer()
+                        }
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets())
+                    } else {
+                        WrappedCard(
+                            wrappedData: wrappedHandler.currentWrappedData,
+                            onTap: {
+                                showWrapped = true
+                            }
+                        )
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets())
+                    }
+                } header: {
+                    Text("YEAR IN REVIEW")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+                
                 // App Info & Support
                 Section {
                     NavigationLink {
@@ -186,6 +223,20 @@ struct SettingsView: View {
                 
             }
         }
+        .sheet(isPresented: $showWrapped) {
+            WrappedView(wrappedData: wrappedHandler.currentWrappedData)
+        }
+        .onAppear {
+            // Generate real wrapped data from user's actual data
+            Task {
+                await generateRealWrappedData()
+            }
+        }
+    }
+    
+    private func generateRealWrappedData() async {
+        // Generate wrapped data from real Supabase data
+        await wrappedHandler.generateWrapped()
     }
 }
 
