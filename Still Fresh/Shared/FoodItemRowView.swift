@@ -21,6 +21,10 @@ struct FoodItemRowView: View {
     var onToggleSelection: (() -> Void)? = nil
     var buttonIcon: String? = nil
     
+    // New properties for swipe-to-delete
+    var onDelete: (() -> Void)? = nil
+    var showSwipeToDelete: Bool = false
+    
     init(
         item: FoodItem,
         onClickFunction: (() -> Void)? = nil,
@@ -29,7 +33,9 @@ struct FoodItemRowView: View {
         isEditMode: Bool = false,
         isSelected: Bool = false,
         onToggleSelection: (() -> Void)? = nil,
-        buttonIcon: String? = nil
+        buttonIcon: String? = nil,
+        onDelete: (() -> Void)? = nil,
+        showSwipeToDelete: Bool = false
     ) {
         self.item = item
         self.onClickFunction = onClickFunction
@@ -39,9 +45,132 @@ struct FoodItemRowView: View {
         self.isSelected = isSelected
         self.onToggleSelection = onToggleSelection
         self.buttonIcon = buttonIcon
+        self.onDelete = onDelete
+        self.showSwipeToDelete = showSwipeToDelete
     }
     
     var body: some View {
+        Group {
+            if showSwipeToDelete && onDelete != nil {
+                // SwiftUI List row with swipe actions for iOS native behavior
+                swipeableRowContent
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive, action: {
+                            onDelete?()
+                        }) {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+            } else {
+                // Regular row without swipe functionality
+                regularRowContent
+            }
+        }
+    }
+    
+    private var swipeableRowContent: some View {
+        HStack(spacing: 16) {
+            if isEditMode && onToggleSelection != nil {
+                Button(action: onToggleSelection!) {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 22))
+                        .foregroundColor(isSelected ? Color(UIColor.systemTeal) : Color.gray.opacity(0.5))
+                }
+                .padding(.trailing, 2)
+            }
+                        
+            
+            // Food icon with background
+            if (item.image != nil) {
+                AsyncImage(url: URL(string: item.image!)) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                } placeholder: {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(bgColorForItem)
+                            .frame(width: 52, height: 52)
+                        
+                        Image(systemName: symbolNameForItem)
+                            .font(.system(size: 26))
+                            .foregroundColor(bgColorForItem.opacity(1.5))
+                    }
+                }
+                .frame(width: 60, height: 60)
+                .clipShape(Circle())
+                
+            } else {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(bgColorForItem)
+                        .frame(width: 52, height: 52)
+                    
+                    Image(systemName: symbolNameForItem)
+                        .font(.system(size: 24))
+                        .foregroundColor(bgColorForItem.opacity(2))
+                }
+            }
+            
+            // Food details
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.name)
+                    .font(.system(size: 16, weight: .semibold))
+                    .lineLimit(1)
+                
+                // Expiry date
+                if (showExpiryDate) {
+                    Text(item.expiryText)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(expiryColor)
+                }
+            }
+            
+            Spacer()
+            
+            // Date tag
+            if (showExpiryDate) {
+                Text(formattedDate)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(Color.gray.opacity(0.1))
+                    )
+            }
+            
+            
+            Spacer()
+            
+            if !isEditMode {
+                Button(action: {
+                    if (isSearchObject) {
+                        var recentSearches = recentSearchesHandler.getRecentSearches()
+                        
+                        recentSearches.insert(item.name, at: recentSearches.endIndex)
+                        
+                        RecentSearchesHandler().setRecentSearches(recentSearches)
+                    }
+                    
+                    if (onClickFunction != nil) {
+                        onClickFunction?()
+                    }
+                    
+                }) {
+                    Image(systemName: buttonIcon == nil ? "plus.circle.fill" : buttonIcon!)
+                        .font(.system(size: 26))
+                        .foregroundColor(Color(UIColor.systemTeal))
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
+    }
+    
+    private var regularRowContent: some View {
         HStack(spacing: 16) {
             if isEditMode && onToggleSelection != nil {
                 Button(action: onToggleSelection!) {
