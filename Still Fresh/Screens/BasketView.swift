@@ -8,8 +8,7 @@ struct BasketView: View {
     @State private var selectedItems: Set<UUID> = []
     @State private var sheetHeight : PresentationDetent = .height(320)
     
-    // Date picker sheet states
-    @State private var showDatePicker = false
+    // Date picker sheet state
     @State private var selectedFoodItemForDatePicker: FoodItem?
 
     @State var sectionHeaders: [BasketSectionHeader] = []
@@ -134,16 +133,17 @@ struct BasketView: View {
                 .presentationCornerRadius(24)
                 .presentationCompactAdaptation(.none)
         }
-        .sheet(isPresented: $showDatePicker) {
-            if let selectedFoodItem = selectedFoodItemForDatePicker {
-                ExpiryDatePickerSheet(
-                    isPresented: $showDatePicker,
-                    foodItem: selectedFoodItem,
-                    onDateUpdated: { newDate in
-                        updateExpiryDate(for: selectedFoodItem, newDate: newDate)
-                    }
-                )
-            }
+        .sheet(item: $selectedFoodItemForDatePicker) { selectedFoodItem in
+            ExpiryDatePickerSheet(
+                isPresented: Binding(
+                    get: { selectedFoodItemForDatePicker != nil },
+                    set: { if !$0 { selectedFoodItemForDatePicker = nil } }
+                ),
+                foodItem: selectedFoodItem,
+                onDateUpdated: { newDate in
+                    updateExpiryDate(for: selectedFoodItem, newDate: newDate)
+                }
+            )
         }
         }
         .alert("Error loading data",
@@ -245,7 +245,7 @@ struct BasketView: View {
     private func updateExpiryDate(for item: FoodItem, newDate: Date) {
         guard let houseInventoryId = item.house_inventory_id else {
             print("Cannot update item: missing house_inventory_id")
-            showDatePicker = false
+            selectedFoodItemForDatePicker = nil
             return
         }
         
@@ -253,14 +253,12 @@ struct BasketView: View {
             do {
                 try await BasketHandler.updateInventoryItemExpiryDate(houseInventoryId: houseInventoryId, newExpiryDate: newDate)
                 await MainActor.run {
-                    showDatePicker = false
                     selectedFoodItemForDatePicker = nil
                     refreshData()
                 }
             } catch {
                 print("Error updating expiry date: \(error)")
                 await MainActor.run {
-                    showDatePicker = false
                     selectedFoodItemForDatePicker = nil
                     showErrorAlert = true
                 }
@@ -270,7 +268,6 @@ struct BasketView: View {
     
     private func openDatePicker(for item: FoodItem) {
         selectedFoodItemForDatePicker = item
-        showDatePicker = true
     }
 }
 
