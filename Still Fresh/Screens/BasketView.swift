@@ -58,7 +58,9 @@ struct BasketView: View {
                                 items: groupedItems[.today] ?? [],
                                 isEditMode: isEditMode,
                                 selectedItems: selectedItems,
-                                onToggleSelection: toggleSelection
+                                onToggleSelection: toggleSelection,
+                                onDeleteItem: deleteItem,
+                                onRefreshData: refreshData
                             )
                         }
                         
@@ -68,7 +70,9 @@ struct BasketView: View {
                                 items: groupedItems[.tomorrow] ?? [],
                                 isEditMode: isEditMode,
                                 selectedItems: selectedItems,
-                                onToggleSelection: toggleSelection
+                                onToggleSelection: toggleSelection,
+                                onDeleteItem: deleteItem,
+                                onRefreshData: refreshData
                             )
                         }
                         
@@ -78,7 +82,9 @@ struct BasketView: View {
                                 items: groupedItems[.later] ?? [],
                                 isEditMode: isEditMode,
                                 selectedItems: selectedItems,
-                                onToggleSelection: toggleSelection
+                                onToggleSelection: toggleSelection,
+                                onDeleteItem: deleteItem,
+                                onRefreshData: refreshData
                             )
                         }
                         
@@ -91,12 +97,13 @@ struct BasketView: View {
                     if isEditMode {
                         ToolbarItem(placement: .navigationBarLeading) {
                             Button(action: {
-                                
+                                deleteSelectedItems()
                             }) {
                                 Image(systemName: "trash")
-                                    .foregroundStyle(Color(.red))
+                                    .foregroundStyle(selectedItems.isEmpty ? Color.gray : Color.red)
                                     .frame(width: 32, height: 32)
                             }
+                            .disabled(selectedItems.isEmpty)
                         }
                     }
                     
@@ -126,25 +133,7 @@ struct BasketView: View {
             Button("Close", role: .cancel) {}
         }
         .onAppear() {
-            isLoading = true
-            
-            Task {
-                do {
-                    let results = try await BasketHandler.getBasketProductsSortedOnHeader()
-                    
-                    sectionHeaders = results.keys.map({
-                        result in
-                        return result
-                    })
-                    groupedItems = results
-                                        
-                } catch {
-                    print("Error: \(error)")
-                    showErrorAlert = true
-                }
-                
-                isLoading = false
-            }
+            refreshData()
         }
     }
 
@@ -153,6 +142,85 @@ struct BasketView: View {
             selectedItems.remove(item.id)
         } else {
             selectedItems.insert(item.id)
+        }
+    }
+    
+    private func deleteItem(_ item: FoodItem) {
+        guard let houseInventoryId = item.house_inventory_id else {
+            print("Cannot delete item: missing house_inventory_id")
+            return
+        }
+        
+        Task {
+            do {
+                try await BasketHandler.deleteInventoryItem(houseInventoryId: houseInventoryId)
+                await MainActor.run {
+                    refreshData()
+                }
+            } catch {
+                print("Error deleting item: \(error)")
+                await MainActor.run {
+                    showErrorAlert = true
+                }
+            }
+        }
+    }
+    
+    private func deleteSelectedItems() {
+        let selectedFoodItems = getAllSelectedItems()
+        let houseInventoryIds = selectedFoodItems.compactMap { $0.house_inventory_id }
+        
+        guard !houseInventoryIds.isEmpty else {
+            print("No valid items selected for deletion")
+            return
+        }
+        
+        Task {
+            do {
+                try await BasketHandler.deleteMultipleInventoryItems(houseInventoryIds: houseInventoryIds)
+                await MainActor.run {
+                    selectedItems.removeAll()
+                    isEditMode = false
+                    refreshData()
+                }
+            } catch {
+                print("Error deleting selected items: \(error)")
+                await MainActor.run {
+                    showErrorAlert = true
+                }
+            }
+        }
+    }
+    
+    private func getAllSelectedItems() -> [FoodItem] {
+        var allItems: [FoodItem] = []
+        for (_, items) in groupedItems {
+            allItems.append(contentsOf: items.filter { selectedItems.contains($0.id) })
+        }
+        return allItems
+    }
+    
+    private func refreshData() {
+        isLoading = true
+        
+        Task {
+            do {
+                let results = try await BasketHandler.getBasketProductsSortedOnHeader()
+                
+                await MainActor.run {
+                    sectionHeaders = results.keys.map({ result in
+                        return result
+                    })
+                    groupedItems = results
+                    isLoading = false
+                }
+            } catch {
+                print("Error: \(error)")
+                await MainActor.run {
+                    showErrorAlert = true
+                    isLoading = false
+                }
+            }
         }
     }
 }
@@ -164,6 +232,8 @@ struct FoodItemSectionView: View {
     let isEditMode: Bool
     let selectedItems: Set<UUID>
     let onToggleSelection: (FoodItem) -> Void
+    let onDeleteItem: (FoodItem) -> Void
+    let onRefreshData: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -181,22 +251,61 @@ struct FoodItemSectionView: View {
                     .foregroundColor(.secondary)
                 Spacer()
             }
-            ForEach(items) { item in
-                FoodItemRowView(item: item,
-                                isSearchObject: false,
-                                isEditMode: isEditMode,
-                                isSelected: selectedItems.contains(item.id),
-                                onToggleSelection: { onToggleSelection(item) },
-                                buttonIcon: "chevron.right"
-                )
-                .padding(.vertical, 6)
+            .padding(.horizontal, 16)
+            
+            // Use native SwiftUI List for proper swipe-to-delete behavior
+            if !isEditMode {
+                List {
+                    ForEach(items) { item in
+                        FoodItemRowView(
+                            item: item,
+                            isSearchObject: false,
+                            isEditMode: isEditMode,
+                            isSelected: selectedItems.contains(item.id),
+                            onToggleSelection: { onToggleSelection(item) },
+                            buttonIcon: "chevron.right",
+                            showSwipeToDelete: false
+                        )
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16))
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive, action: {
+                                onDeleteItem(item)
+                            }) {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                    }
+                }
+                .listStyle(PlainListStyle())
+                .frame(height: CGFloat(items.count) * 90) // Approximate height per item
+                .scrollDisabled(true)
+            } else {
+                // Use VStack for edit mode
+                VStack(spacing: 0) {
+                    ForEach(items) { item in
+                        FoodItemRowView(
+                            item: item,
+                            isSearchObject: false,
+                            isEditMode: isEditMode,
+                            isSelected: selectedItems.contains(item.id),
+                            onToggleSelection: { onToggleSelection(item) },
+                            buttonIcon: "chevron.right",
+                            showSwipeToDelete: false
+                        )
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 16)
+                    }
+                }
             }
         }
-        .padding(.horizontal, 16)
         .padding(.top, 20)
     }
 }
-
+#Preview {
+    BasketView()
+}
 extension View {
     @ViewBuilder
     func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {

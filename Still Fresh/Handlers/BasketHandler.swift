@@ -129,6 +129,7 @@ class BasketHandler {
             
             let foodItem = FoodItem(
                 id: UUID(),
+                house_inventory_id: resultItem.house_inventory_id,
                 name: resultItem.products.product_name,
                 store: "Unknown",
                 image: resultItem.products.product_image,
@@ -179,6 +180,7 @@ class BasketHandler {
             
             let foodItem = FoodItem(
                 id: UUID(),
+                house_inventory_id: resultItem.house_inventory_id,
                 name: resultItem.products.product_name,
                 store: "Unknown",
                 image: resultItem.products.product_image,
@@ -189,5 +191,41 @@ class BasketHandler {
         }
         
         return foodItems
+    }
+    
+    public static func deleteInventoryItem(houseInventoryId: Int) async throws {
+        do {
+            let result = try await SupaClient
+                .from("house_inventories")
+                .delete()
+                .eq("house_inventory_id", value: houseInventoryId)
+                .execute()
+            
+            print("Successfully deleted inventory item with ID: \(houseInventoryId)")
+            
+            await setProductNotificationsFromBasket()
+        } catch {
+            print("Error deleting inventory item: \(error)")
+            throw error
+        }
+    }
+    
+    public static func deleteMultipleInventoryItems(houseInventoryIds: [Int]) async throws {
+        do {
+            for houseInventoryId in houseInventoryIds {
+                let result = try await SupaClient
+                    .from("house_inventories")
+                    .delete()
+                    .eq("house_inventory_id", value: houseInventoryId)
+                    .execute()
+            }
+            
+            print("Successfully deleted \(houseInventoryIds.count) inventory items")
+            
+            await setProductNotificationsFromBasket()
+        } catch {
+            print("Error deleting multiple inventory items: \(error)")
+            throw error
+        }
     }
 }

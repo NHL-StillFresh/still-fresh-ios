@@ -2,13 +2,15 @@ import Foundation
 
 struct FoodItem: Identifiable {
     let id: UUID
+    let house_inventory_id: Int? // Added for database deletion
     let name: String
     let store: String
     let image: String? // Image name
     let expiryDate: Date
     
-    init(id: UUID = UUID(), name: String, store: String, image: String?, expiryDate: Date) {
+    init(id: UUID = UUID(), house_inventory_id: Int? = nil, name: String, store: String, image: String?, expiryDate: Date) {
         self.id = id
+        self.house_inventory_id = house_inventory_id
         self.name = name
         self.store = store
         self.image = image
