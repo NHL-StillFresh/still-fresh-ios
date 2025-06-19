@@ -1,5 +1,75 @@
 import SwiftUI
 import Supabase
+import CoreImage.CIFilterBuiltins
+import AVFoundation
+
+struct QRScannerView: UIViewControllerRepresentable {
+    @Binding var scannedCode: String
+    @Binding var isShowingScanner: Bool
+    
+    class Coordinator: NSObject, AVCaptureMetadataOutputObjectsDelegate {
+        var parent: QRScannerView
+        
+        init(_ parent: QRScannerView) {
+            self.parent = parent
+        }
+        
+        func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
+            if let metadataObject = metadataObjects.first as? AVMetadataMachineReadableCodeObject,
+               let stringValue = metadataObject.stringValue {
+                parent.scannedCode = stringValue
+                parent.isShowingScanner = false
+            }
+        }
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        return Coordinator(self)
+    }
+    
+    func makeUIViewController(context: Context) -> UIViewController {
+        let viewController = UIViewController()
+        let session = AVCaptureSession()
+        
+        guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else { return viewController }
+        
+        let videoInput: AVCaptureDeviceInput
+        
+        do {
+            videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
+        } catch {
+            return viewController
+        }
+        
+        if session.canAddInput(videoInput) {
+            session.addInput(videoInput)
+        } else {
+            return viewController
+        }
+        
+        let metadataOutput = AVCaptureMetadataOutput()
+        
+        if session.canAddOutput(metadataOutput) {
+            session.addOutput(metadataOutput)
+            
+            metadataOutput.setMetadataObjectsDelegate(context.coordinator, queue: DispatchQueue.main)
+            metadataOutput.metadataObjectTypes = [.qr]
+        } else {
+            return viewController
+        }
+        
+        let previewLayer = AVCaptureVideoPreviewLayer(session: session)
+        previewLayer.frame = viewController.view.layer.bounds
+        previewLayer.videoGravity = .resizeAspectFill
+        viewController.view.layer.addSublayer(previewLayer)
+        
+        session.startRunning()
+        
+        return viewController
+    }
+    
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
+}
 
 struct HouseDashboard: View {
     @StateObject private var appStore = HouseStoreModel()
@@ -8,12 +78,32 @@ struct HouseDashboard: View {
     @State private var showLeaveConfirmation = false
     @State private var showRemoveMemberConfirmation = false
     @State private var showCreateHouseSheet = false
+    @State private var showQRCodeSheet = false
+    @State private var showQRScanner = false
     @State private var memberToRemove: ProfileModel? = nil
     @State private var isEditingName = false
     @State private var editedName = ""
     @State private var showCopiedToast = false
     @State private var joinHouseId = ""
     @Environment(\.dismiss) private var dismiss
+    
+    // QR Code generation function
+    private func generateQRCode(from string: String) -> UIImage {
+        let context = CIContext()
+        let filter = CIFilter.qrCodeGenerator()
+        
+        filter.message = Data(string.utf8)
+        filter.correctionLevel = "H"
+        
+        if let outputImage = filter.outputImage {
+            let scaledImage = outputImage.transformed(by: CGAffineTransform(scaleX: 10, y: 10))
+            if let cgImage = context.createCGImage(scaledImage, from: scaledImage.extent) {
+                return UIImage(cgImage: cgImage)
+            }
+        }
+        
+        return UIImage(systemName: "xmark.circle") ?? UIImage()
+    }
     
     private var houseSelectionItems: [DropdownItem] {
         appStore.userHouses.map { house in
@@ -172,14 +262,27 @@ struct HouseDashboard: View {
             }
             
             VStack(spacing: 16) {
-                TextField("House ID", text: $joinHouseId)
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(10)
-                    .padding(.horizontal, 32)
-                    .onChange(of: joinHouseId) { _, newValue in
-                        appStore.joinHouseId = newValue
+                HStack {
+                    TextField("House ID", text: $joinHouseId)
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(10)
+                        .onChange(of: joinHouseId) { _, newValue in
+                            appStore.joinHouseId = newValue
+                        }
+                    
+                    Button(action: {
+                        showQRScanner = true
+                    }) {
+                        Image(systemName: "qrcode.viewfinder")
+                            .font(.system(size: 24))
+                            .foregroundColor(tealColor)
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .cornerRadius(10)
                     }
+                }
+                .padding(.horizontal, 32)
                 
                 Button(action: {
                     Task {
@@ -226,6 +329,37 @@ struct HouseDashboard: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text("You've successfully joined the house!")
+        }
+        .fullScreenCover(isPresented: $showQRScanner) {
+            ZStack {
+                QRScannerView(scannedCode: $joinHouseId, isShowingScanner: $showQRScanner)
+                
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            showQRScanner = false
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 30))
+                                .foregroundColor(.white)
+                                .padding()
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    Text("Scan House QR Code")
+                        .font(.title2)
+                        .bold()
+                        .foregroundColor(.white)
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(10)
+                        .padding(.bottom, 50)
+                }
+            }
+            .edgesIgnoringSafeArea(.all)
         }
     }
     
@@ -300,6 +434,18 @@ struct HouseDashboard: View {
                 }
                 
                 Button(action: {
+                    showQRCodeSheet = true
+                }) {
+                    VStack(spacing: 8) {
+                        Image(systemName: "qrcode")
+                            .font(.system(size: 20))
+                        Text("QR Code")
+                            .font(.system(size: 14))
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                
+                Button(action: {
                     showLeaveConfirmation = true
                 }) {
                     VStack(spacing: 8) {
@@ -321,6 +467,34 @@ struct HouseDashboard: View {
                 .fill(Color(.systemBackground))
                 .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 2)
         )
+        .sheet(isPresented: $showQRCodeSheet) {
+            if let houseId = appStore.selectedHouse?.houseId {
+                VStack(spacing: 24) {
+                    Text("Scan to Join House")
+                        .font(.title2)
+                        .bold()
+                    
+                    Image(uiImage: generateQRCode(from: houseId))
+                        .interpolation(.none)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 250, height: 250)
+                    
+                    Text(houseId)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Button("Done") {
+                        showQRCodeSheet = false
+                    }
+                    .padding()
+                    .background(tealColor)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                }
+                .padding()
+            }
+        }
     }
     
     private var membersSection: some View {
@@ -366,14 +540,19 @@ struct HouseDashboard: View {
         var body: some View {
             HStack(spacing: 16) {
                 ZStack {
-                    Circle()
-                        .fill(Color(.systemGray5))
-                        .frame(width: 44, height: 44)
-                        .overlay(
-                            Text(member.profile_first_name.prefix(1).uppercased())
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(.gray)
-                        )
+                    AsyncImage(url: AvatarGenerator.generateAvatarImageURL(withName: fullName)) { image in
+                        image
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 44, height: 44)
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle().stroke(Color.teal, lineWidth: 2)
+                            )
+                    } placeholder: {
+                        ProgressView()
+                            .frame(width: 44, height: 44)
+                    }
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
