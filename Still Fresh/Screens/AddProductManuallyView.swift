@@ -163,26 +163,26 @@ struct AddProductManuallyView: View {
                                 }, showExpiryDate: false
                                 )
                             }
+                            Text("Your product not shown?")
+                            Button(action: {
+                                Task {
+                                    isSearchingOnAPI = true
+                                    searchResults = await getProductsFromAPI()
+                                }
+                            }) {
+                                Text("Add external item")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 12)
+                                    .background(Color(red: 0.04, green: 0.29, blue: 0.29))
+                                    .cornerRadius(12)
+                            }
+                            .padding(.top, 8)
                         }
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
-                    Text("Your product not shown?")
-                    Button(action: {
-                        Task {
-                            isSearchingOnAPI = true
-                            searchResults = await getProductsFromAPI()
-                        }
-                    }) {
-                        Text("Add external item")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 12)
-                            .background(Color(red: 0.04, green: 0.29, blue: 0.29))
-                            .cornerRadius(12)
-                    }
-                    .padding(.top, 8)
                 }
             }
         }

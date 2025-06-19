@@ -193,6 +193,11 @@ struct SearchView: View {
                                     Task {
                                         showLoading = true
                                         
+                                        var recentSearches = recentSearchesHandler.getRecentSearches()
+                                        recentSearches.append(item.name)
+                                        
+                                        recentSearchesHandler.setRecentSearches(recentSearches)
+                                        
                                         if await SupabaseProductHandler.addAllSelectedProducts(selectedProducts: [:], knownProducts: [item.name]) {
                                             showSuccesAlert = true
                                         } else {
@@ -215,7 +220,7 @@ struct SearchView: View {
                 dismiss()
             }
         }
-        .alert("Error adding your products to your inventory", isPresented: $showSuccesAlert) {
+        .alert("Error adding your products to your inventory", isPresented: $showErrorAlert) {
             Button("Close", role: .cancel) {}
         }
     }

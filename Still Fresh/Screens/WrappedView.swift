@@ -75,7 +75,7 @@ struct WrappedView: View {
                     }
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                .onChange(of: currentSlide) { newValue in
+                .onChange(of: currentSlide) {_, newValue in
                     handleSlideChange(newValue)
                 }
             }

@@ -24,7 +24,7 @@ struct ConfettiView: View {
                 startConfetti()
             }
         }
-        .onChange(of: isActive) { newValue in
+        .onChange(of: isActive) {_, newValue in
             if newValue {
                 shouldContinue = true
                 startConfetti()
