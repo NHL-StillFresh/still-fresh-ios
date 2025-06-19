@@ -9,15 +9,17 @@ struct SettingsView: View {
     @Environment(\.presentationMode) var presentationMode
     @ObservedObject var userState: UserStateModel
     @AppStorage("notificationsEnabled") private var notifications = false
+    @AppStorage("selectedHouseId") var storedHouseId: String?
     @State private var darkMode = false
     @State private var expiryNotificationDays = 3
     @State private var selectedUnit = "Days"
-    @State private var username = "App Tester"
-    @State private var email = "apptester@stillfresh.nl"
     @State private var showEditProfile = false
     @State private var showErrorMessage = false
     @State private var alertType: AlertType = .error
     @State private var showCheckProductsView = false
+    @State private var showWrapped = false
+    
+    @StateObject private var wrappedHandler = WrappedAnalyticsHandler()
     
     private let tealColor = Color(red: 122/255, green: 190/255, blue: 203/255)
     private let units = ["Days", "Weeks"]
@@ -29,24 +31,24 @@ struct SettingsView: View {
                 Section {
                     HStack(spacing: 15) {
                         ZStack {
-                            Circle()
-                                .fill(tealColor.opacity(0.2))
-                                .frame(width: 70, height: 70)
-                            
-                            Image(systemName: "person.fill")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 30, height: 30)
-                                .foregroundColor(tealColor)
+                            AsyncImage(url: userState.userProfile?.image) { image in
+                                image
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 70, height: 40)
+                                    .clipShape(Circle())
+                                    .overlay(
+                                        Circle().stroke(Color.teal, lineWidth: 2)
+                                    )
+                            } placeholder: {
+                                ProgressView()
+                                    .frame(width: 40, height: 40)
+                            }
                         }
                         
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(userState.userProfile?.firstName ?? "User")
+                            Text("\(userState.userProfile?.firstName ?? "User") \(userState.userProfile?.lastName ?? "")")
                                 .font(.system(size: 20, weight: .bold))
-                            
-                            Text(email)
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
                         }
                         
                         Spacer()
@@ -62,10 +64,7 @@ struct SettingsView: View {
                                 .clipShape(Circle())
                         }
                         .sheet(isPresented: $showEditProfile) {
-                            ProfileEditView(username: $username, email: $email)
-                        }
-                        .sheet(isPresented: $showCheckProductsView) {
-                            CheckProductsView(productLines: ["Jumbo Cola", "Kaasstengels", "Pepsi", "Albert Heijn Milk", "Test Product"])
+                            ProfileEditView(userState: userState)
                         }
                     }
                     .padding(.vertical, 6)
@@ -95,35 +94,12 @@ struct SettingsView: View {
                                 }
                             }
                         }
+                        
                     }
-
-
-                    
-                    Toggle(isOn: $darkMode) {
-                        SettingRow(icon: "moon.fill", iconColor: .purple, title: "Dark Mode")
-                    }
-                    .tint(tealColor)
-                    
-                    HStack {
-                        SettingRow(icon: "exclamationmark.circle.fill", iconColor: .red, title: "Expiry Alert Threshold")
-                        
-                        Spacer()
-                        
-                        Picker("", selection: $expiryNotificationDays) {
-                            ForEach(1...7, id: \.self) { day in
-                                Text("\(day)").tag(day)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .labelsHidden()
-                        
-                        Picker("", selection: $selectedUnit) {
-                            ForEach(units, id: \.self) { unit in
-                                Text(unit).tag(unit)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .labelsHidden()
+                    NavigationLink {
+                        HouseDashboard()
+                    } label: {
+                        SettingRow(icon: "house.fill", iconColor: tealColor, title: "House Dashboard")
                     }
                 } header: {
                     Text("PREFERENCES")
@@ -131,27 +107,36 @@ struct SettingsView: View {
                         .foregroundColor(.secondary)
                 }
                 
-                // Food & Tracking
+                // Still Fresh Wrapped Section
                 Section {
-                    NavigationLink {
-                        Text("Food Categories")
-                    } label: {
-                        SettingRow(icon: "tag.fill", iconColor: .blue, title: "Food Categories")
-                    }
-                    
-                    NavigationLink {
-                        Text("Favorite Stores")
-                    } label: {
-                        SettingRow(icon: "cart.fill", iconColor: .green, title: "Favorite Stores")
-                    }
-                    
-                    NavigationLink {
-                        Text("Storage Locations")
-                    } label: {
-                        SettingRow(icon: "archivebox.fill", iconColor: .brown, title: "Storage Locations")
+                    if wrappedHandler.isGenerating {
+                        HStack {
+                            Spacer()
+                            VStack(spacing: 12) {
+                                ProgressView()
+                                    .scaleEffect(1.2)
+                                    .tint(tealColor)
+                                Text("Generating your year in review...")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, 40)
+                            Spacer()
+                        }
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets())
+                    } else {
+                        WrappedCard(
+                            wrappedData: wrappedHandler.currentWrappedData,
+                            onTap: {
+                                showWrapped = true
+                            }
+                        )
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets())
                     }
                 } header: {
-                    Text("FOOD TRACKING")
+                    Text("YEAR IN REVIEW")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.secondary)
                 }
@@ -159,22 +144,11 @@ struct SettingsView: View {
                 // App Info & Support
                 Section {
                     NavigationLink {
-                        Text("About Still Fresh")
+                        AboutView()
                     } label: {
                         SettingRow(icon: "info.circle.fill", iconColor: tealColor, title: "About Still Fresh")
                     }
                     
-                    NavigationLink {
-                        Text("Help & Support")
-                    } label: {
-                        SettingRow(icon: "questionmark.circle.fill", iconColor: .yellow, title: "Help & Support")
-                    }
-                    
-                    NavigationLink {
-                        Text("Privacy Policy")
-                    } label: {
-                        SettingRow(icon: "lock.fill", iconColor: .gray, title: "Privacy Policy")
-                    }
                 } header: {
                     Text("INFO & SUPPORT")
                         .font(.system(size: 14, weight: .medium))
@@ -209,18 +183,7 @@ struct SettingsView: View {
                             Spacer()
                         }
                     }
-                    
-                    Button(action: {
-                        showCheckProductsView = true
-                    }) {
-                        HStack {
-                            Spacer()
-                            Text("Test CheckProductsView (DEBUG ONLY)")
-                                .foregroundColor(.blue)
-                                .font(.system(size: 16, weight: .medium))
-                            Spacer()
-                        }
-                    }
+
                 }
                 #endif
             }
@@ -249,6 +212,7 @@ struct SettingsView: View {
                         primaryButton: .destructive(Text("Sign Out")) {
                             Task {
                                 try? await SupaClient.auth.signOut()
+                                storedHouseId = nil
                                 userState.invalidateSession()
                             }
                         },
@@ -259,6 +223,20 @@ struct SettingsView: View {
                 
             }
         }
+        .sheet(isPresented: $showWrapped) {
+            WrappedView(wrappedData: wrappedHandler.currentWrappedData)
+        }
+        .onAppear {
+            // Generate real wrapped data from user's actual data
+            Task {
+                await generateRealWrappedData()
+            }
+        }
+    }
+    
+    private func generateRealWrappedData() async {
+        // Generate wrapped data from real Supabase data
+        await wrappedHandler.generateWrapped()
     }
 }
 

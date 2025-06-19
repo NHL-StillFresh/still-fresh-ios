@@ -50,20 +50,73 @@ func sendCalendarNotification(title: String, body: String, date: Date) {
         return
     }
     
-    let center = UNUserNotificationCenter.current()
-    let content = UNMutableNotificationContent()
-    content.title = title
-    content.body = body
-    content.sound = UNNotificationSound.default
-    
-    let trigger = UNCalendarNotificationTrigger(dateMatching: Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date), repeats: false)
-    
-    let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
-    
-    center.add(request) { error in
-        if let error = error {
-            print("Error scheduling notification: \(error)")
+    do {
+        let center = UNUserNotificationCenter.current()
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = UNNotificationSound.default
+        
+        let trigger = UNCalendarNotificationTrigger(dateMatching: Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date), repeats: false)
+        
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+        
+        center.add(request) { error in
+            if let error = error {
+                print("Error scheduling notification: \(error)")
+            }
         }
+    } catch {
+        print("Error in sendCalendarNotification: \(error)")
+    }
+}
+
+func resetAllProductNotifications() {
+    let center = UNUserNotificationCenter.current()
+    center.removeAllPendingNotificationRequests()
+}
+
+func setProductNotifications(for houseInventories: [HouseInventoryModelWithProducts]) {
+    let center = UNUserNotificationCenter.current()
+
+    let dateFormatter = DateFormatter()
+    dateFormatter.dateFormat = "yyyy-MM-dd"
+    
+    for houseInventory in houseInventories {
+        let dateString = houseInventory.inventory_best_before_date
+        
+        if let bestBeforeDate = dateFormatter.date(from: dateString), let notificationDate = Calendar.current.date(byAdding: .day, value: -1, to: bestBeforeDate) {
+            let title = "Product Expiring Soon"
+            let body = "\(houseInventory.products.product_name) will expire on \(dateFormatter.string(from: bestBeforeDate))"
+            
+            var triggerDateComponents = Calendar.current.dateComponents([.year, .month, .day], from: notificationDate)
+            triggerDateComponents.hour = 9
+            triggerDateComponents.minute = 0
+            
+            let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDateComponents, repeats: false)
+            
+            let content = UNMutableNotificationContent()
+            content.title = title
+            content.body = body
+            content.sound = .default
+            
+            let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+            
+            center.add(request) { error in
+                if let error = error {
+                    print("Error scheduling notification: \(error)")
+                }
+            }
+        }
+    }
+} 
+func setProductNotificationsFromBasket() async {
+    do {
+        resetAllProductNotifications();
+        let productItems = try await BasketHandler.getAllBasketProducts();
+        setProductNotifications(for: productItems);
+    } catch {
+        print("Error setting product notifications from basket: \(error)")
     }
 }
 

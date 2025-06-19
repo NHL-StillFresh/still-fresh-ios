@@ -19,7 +19,7 @@ struct BottomNavBar: View {
                     .tabItem {
                         Image(systemName: selectedTab == 1 ? "bag.fill" : "bag")
                             .environment(\.symbolVariants, selectedTab == 1 ? .fill : .none)
-                        Text("Basket")
+                        Text("Inventory")
                     }.tag(1)
                 
                 Color.clear

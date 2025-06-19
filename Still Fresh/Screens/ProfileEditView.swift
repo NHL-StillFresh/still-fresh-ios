@@ -4,19 +4,19 @@ import Supabase
 
 struct ProfileEditView: View {
     @Environment(\.presentationMode) var presentationMode
-    @Binding var username: String
-    @Binding var email: String
+    @ObservedObject var userState: UserStateModel
     
-    @State private var editedUsername: String
-    @State private var editedEmail: String
+    @State private var isFirstNameEmpty: Bool = false
+
+    @State private var editedFirstName: String
+    @State private var editedLastName: String
     
     private let tealColor = Color(red: 122/255, green: 190/255, blue: 203/255)
     
-    init(username: Binding<String>, email: Binding<String>) {
-        self._username = username
-        self._email = email
-        self._editedUsername = State(initialValue: username.wrappedValue)
-        self._editedEmail = State(initialValue: email.wrappedValue)
+    init(userState: UserStateModel) {
+        self.userState = userState
+        self._editedFirstName = State(initialValue: userState.userProfile?.firstName ?? "")
+        self._editedLastName = State(initialValue: userState.userProfile?.lastName ?? "")
     }
     
     var body: some View {
@@ -24,10 +24,6 @@ struct ProfileEditView: View {
             VStack(spacing: 20) {
                 // Profile photo
                 ZStack {
-                    Circle()
-                        .fill(tealColor.opacity(0.2))
-                        .frame(width: 100, height: 100)
-                    
                     Image(systemName: "person.fill")
                         .resizable()
                         .scaledToFit()
@@ -39,16 +35,19 @@ struct ProfileEditView: View {
                         Spacer()
                         HStack {
                             Spacer()
-                            Image(systemName: "camera.fill")
-                                .foregroundColor(.white)
-                                .font(.system(size: 14))
-                                .padding(8)
-                                .background(tealColor)
-                                .clipShape(Circle())
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white, lineWidth: 2)
-                                )
+                            AsyncImage(url: userState.userProfile?.image) { image in
+                                    image
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 100, height: 100)
+                                        .clipShape(Circle())
+                                        .overlay(
+                                            Circle().stroke(Color.teal, lineWidth: 2)
+                                        )
+                                } placeholder: {
+                                    ProgressView()
+                                        .frame(width: 40, height: 40)
+                                }
                         }
                     }
                     .frame(width: 100, height: 100)
@@ -59,30 +58,34 @@ struct ProfileEditView: View {
                 // Form fields
                 VStack(spacing: 20) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Name")
+                        Text("First Name")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.secondary)
                         
-                        TextField("Your name", text: $editedUsername)
+                        TextField("Your first name", text: $editedFirstName)
                             .font(.system(size: 16))
                             .padding()
                             .background(Color(.systemGray6))
                             .cornerRadius(10)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(isFirstNameEmpty ? Color.red : Color.clear, lineWidth: 2)
+                            )
+                            .onChange(of: editedFirstName) {
+                                isFirstNameEmpty = false
+                            }
                     }
                     
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Email")
+                        Text("Last Name")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.secondary)
                         
-                        TextField("Your email", text: $editedEmail)
+                        TextField("Your last name", text: $editedLastName)
                             .font(.system(size: 16))
                             .padding()
                             .background(Color(.systemGray6))
                             .cornerRadius(10)
-                            .keyboardType(.emailAddress)
-                            .autocapitalization(.none)
-                            .autocorrectionDisabled()
                     }
                 }
                 .padding(.horizontal)
@@ -91,19 +94,37 @@ struct ProfileEditView: View {
                 
                 // Save button
                 Button(action: {
-                    username = editedUsername
-                    email = editedEmail
-                    
                     Task {
-                        let attributes = UserAttributes(data: ["display_name": .string(editedUsername)])
                         do {
-                            try await SupaClient.auth.update(user: attributes)
+                            
+                            if editedFirstName == "" {
+                                print("First name is empty")
+                                isFirstNameEmpty = true
+                                return
+                            }
+                            isFirstNameEmpty = false
+                            // Update the profile in the database
+                            let updatedProfile: ProfileModel = try await SupaClient
+                                .from("profiles")
+                                .update([
+                                    "profile_first_name": editedFirstName,
+                                    "profile_last_name": editedLastName
+                                ])
+                                .eq("user_id", value: userState.userProfile?.UID ?? "")
+                                .select()
+                                .single()
+                                .execute()
+                                .value
+                            
+                            // Update the local state
+                            userState.userProfile?.firstName = updatedProfile.profile_first_name
+                            userState.userProfile?.lastName = updatedProfile.profile_last_name
+                            
+                            presentationMode.wrappedValue.dismiss()
                         } catch {
-                            print("Failed to update display_name: \(error)")
+                            print("Failed to update profile: \(error)")
                         }
                     }
-                    
-                    presentationMode.wrappedValue.dismiss()
                 }) {
                     Text("Save Changes")
                         .font(.system(size: 16, weight: .medium))
@@ -134,8 +155,7 @@ struct ProfileEditView: View {
 }
 
 #Preview {
-    @Previewable @State var username = "App Tester"
-    @Previewable @State var email = "apptester@stillfresh.nl"
-    
-    return ProfileEditView(username: $username, email: $email)
+    let userState = UserStateModel()
+    userState.userProfile = ProfileObject(UID: "test-id", firstName: "John", lastName: "Doe")
+    return ProfileEditView(userState: userState)
 } 

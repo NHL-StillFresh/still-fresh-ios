@@ -3,9 +3,11 @@ import SwiftUI
 // Import custom AppState
 
 struct HomeView: View {
-    @StateObject private var tipsViewModel = FoodTipsViewModel(apiKey: APIKeys.openRouterAPIKey)
-    @StateObject private var expiringItemsViewModel = ExpiringItemsViewModel()
+    @AppStorage("selectedHouseId") var selectedHouseId: String?
+    
+    @StateObject private var tipsViewModel = FoodTipsViewModel()
     @StateObject private var recipesViewModel = RecipesViewModel()
+    @StateObject private var appStore = HouseStoreModel()
     
     // Animation states
     @State private var tipsOpacity = 0.0
@@ -15,56 +17,77 @@ struct HomeView: View {
     @State private var expiringItemsOffset: CGFloat = 40
     @State private var recipesOffset: CGFloat = 50
     
+    @State private var foodItems: [FoodItem] = []
+    @State private var showInventoryView = false
+    @State private var showHouseDashboardView = false
+    
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                // Tips carousel
-                TipsCarouselView(tips: tipsViewModel.dailyTips.tips, onRefresh: {
-                    tipsViewModel.forceRefreshTips()
-                })
-                .padding(.top)
-                .opacity(tipsOpacity)
-                .offset(y: tipsOffset)
-                
-                // Expiring items carousel
-                ExpiringItemsCarouselView(
-                    items: expiringItemsViewModel.expiringItems,
-                    onSeeAllTapped: {
-                        expiringItemsViewModel.seeAllItems()
-                    }
-                )
-                .opacity(expiringItemsOpacity)
-                .offset(y: expiringItemsOffset)
-                
-                // Last minute recipes carousel
-                LastMinuteRecipesCarouselView(
-                    recipes: recipesViewModel.lastMinuteRecipes,
-                    onSeeAllTapped: {
-                        recipesViewModel.seeAllRecipes()
-                    }
-                )
-                .opacity(recipesOpacity)
-                .offset(y: recipesOffset)
-                
-                Spacer(minLength: 30)
+        VStack(alignment: .leading, spacing: 16) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Tips carousel
+                    TipsCarouselView(tips: tipsViewModel.dailyTips.tips, onRefresh: {
+                        tipsViewModel.forceRefreshTips()
+                    })
+                    .opacity(tipsOpacity)
+                    .offset(y: tipsOffset)
+                    
+                    // Expiring items carousel
+                    ExpiringItemsCarouselView(
+                        items: foodItems,
+                        onSeeAllTapped: {
+                            showInventoryView = true
+                        }
+                    )
+                    .opacity(expiringItemsOpacity)
+                    .offset(y: expiringItemsOffset)
+                    
+                    // Last minute recipes carousel
+                    LastMinuteRecipesCarouselView(
+                        recipes: recipesViewModel.recipes,
+                    )
+                    .opacity(recipesOpacity)
+                    .offset(y: recipesOffset)
+                    
+                    Spacer(minLength: 30)
+                }
             }
         }
+        .task {
+            await appStore.loadUserHouses()
+        }
         .onAppear {
+            if selectedHouseId == nil {
+                showHouseDashboardView = true
+            }
+            
             if tipsViewModel.dailyTips.tips.isEmpty {
                 tipsViewModel.generateTips()
             }
             
-            // Check if we should animate (only after login)
+            getBasketItems()
+            
             let shouldAnimate = UserDefaults.standard.bool(forKey: "shouldAnimateHomeView")
             
             if shouldAnimate {
                 animateItemsIn()
-                // Reset the flag so we don't animate again
                 UserDefaults.standard.set(false, forKey: "shouldAnimateHomeView")
             } else {
-                // If not coming from login, just show everything immediately
                 showItemsWithoutAnimation()
             }
+        }
+        .alert("Error", isPresented: .constant(appStore.errorMessage != nil)) {
+            Button("OK", role: .cancel) {
+                appStore.errorMessage = nil
+            }
+        } message: {
+            Text(appStore.errorMessage ?? "Unknown error")
+        }
+        .sheet(isPresented: $showInventoryView) {
+            BasketView()
+        }
+        .sheet(isPresented: $showHouseDashboardView) {
+            HouseDashboard()
         }
 //        .alert(isPresented: Binding(
 //            get: { tipsViewModel.error != nil },
@@ -76,6 +99,18 @@ struct HomeView: View {
 //                dismissButton: .default(Text("OK"))
 //            )
 //        }
+    }
+    
+    private func getBasketItems() {
+        Task {
+            do{
+                self.foodItems = try await BasketHandler.getBasketProducts()
+                
+                await setProductNotificationsFromBasket();
+            } catch {
+                print("Products cannot be loaded: \(error)")
+            }
+        }
     }
     
     private func animateItemsIn() {

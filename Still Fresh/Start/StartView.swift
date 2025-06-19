@@ -57,7 +57,7 @@ struct StartView : View {
             requestNotificationPermission { granted in
                 if granted {
                     notifications = true
-                    sendTimeNotification(title: "Welcome to the Still Fresh app!", body: "And now we're gonna spam you with notifications.", after: 10)
+//                    sendTimeNotification(title: "Welcome to the Still Fresh app!", body: "And now we're gonna spam you with notifications.", after: 10)
                 } else {
                     notifications = false
                     print("Notification permission not granted.")
@@ -70,7 +70,7 @@ struct StartView : View {
     private func tabTitle(for tab: Int) -> String {
         switch tab {
         case 0: return "Home"
-        case 1: return "Basket"
+        case 1: return "Inventory"
         case 3: return "Search"
         case 4: return "Notifications"
         default: return ""

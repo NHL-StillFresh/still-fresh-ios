@@ -2,12 +2,12 @@ import SwiftUI
 
 struct LastMinuteRecipesCarouselView: View {
     let recipes: [Recipe]
-    var onSeeAllTapped: () -> Void
     
     @State private var currentPage = 0
     @State private var dragOffset: CGFloat = 0
     @State private var scrollOffset: CGFloat = 0
     @State private var isUserScrolling = false
+
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -17,15 +17,6 @@ struct LastMinuteRecipesCarouselView: View {
                     .font(.system(size: 21))
                     .padding(.bottom, 8)
                     .fontWeight(.bold)
-                
-                Spacer()
-                
-                Button(action: onSeeAllTapped) {
-                    Text("See all")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(Color(red: 122/255, green: 190/255, blue: 203/255))
-                        .padding(.bottom, 8)
-                }
             }
             .padding(.horizontal)
             
@@ -109,6 +100,5 @@ struct LastMinuteRecipesCarouselView: View {
 #Preview {
     LastMinuteRecipesCarouselView(
         recipes: Recipe.sampleRecipes,
-        onSeeAllTapped: {}
     )
 } 

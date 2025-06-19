@@ -4,7 +4,6 @@ struct SearchView: View {
     @StateObject private var recentSearchesHandler = RecentSearchesHandler()
     @State private var searchText = ""
     @State private var isSearching = false
-    @State private var selectedCategory: FoodCategory? = nil
     @State private var showFilterSheet = false
     @State private var filters = SearchFilters()
 
@@ -12,6 +11,12 @@ struct SearchView: View {
     
     @State private var showAddView = false
     @State private var sheetHeight : PresentationDetent = .height(320)
+    
+    @State private var showErrorAlert = false
+    @State private var showSuccesAlert = false
+    @State private var showLoading = false
+
+    @Environment(\.dismiss) private var dismiss
     
     
     var body: some View {
@@ -21,7 +26,6 @@ struct SearchView: View {
                 SearchBarView(
                     searchText: $searchText, 
                     isSearching: $isSearching,
-                    onFilterTap: { showFilterSheet = true }
                 )
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -50,8 +54,6 @@ struct SearchView: View {
     private var defaultContent: some View {
         ScrollView {
             VStack(alignment: .center, spacing: 24) {
-                categoriesSection
-                
                 if !recentSearchesHandler.getRecentSearches().isEmpty {
                     recentSearchesSection
                 } else {
@@ -73,34 +75,6 @@ struct SearchView: View {
         }
     }
     
-    private var categoriesSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Categories")
-                .font(.headline)
-                .padding(.horizontal, 16)
-            
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(FoodCategory.allCases, id: \.self) { category in
-                        CategoryCard(
-                            category: category,
-                            isSelected: selectedCategory == category,
-                            onTap: {
-                                selectedCategory = category
-                                // Simulate search for this category
-                                Task {
-                                    searchResults = await  searchProducts(category: category)
-                                    isSearching = true
-                                }
-                            }
-                        )
-                    }
-                }
-                .padding(.horizontal, 16)
-                .frame(height: 100)
-            }
-        }
-    }
     
     private var recentSearchesSection: some View {
         let recentSearches = recentSearchesHandler.getRecentSearches()
@@ -209,14 +183,45 @@ struct SearchView: View {
                 // List of search results
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        ForEach(searchResults) { item in
-                            SearchResultItemView(item: item)
+                        if (showLoading) {
+                            ProgressView()
+                            Spacer()
+                            Text("We are adding your products...")
+                        } else {
+                            ForEach(searchResults) { item in
+                                FoodItemRowView(item: item, onClickFunction: {
+                                    Task {
+                                        showLoading = true
+                                        
+                                        var recentSearches = recentSearchesHandler.getRecentSearches()
+                                        recentSearches.append(item.name)
+                                        
+                                        recentSearchesHandler.setRecentSearches(recentSearches)
+                                        
+                                        if await SupabaseProductHandler.addAllSelectedProducts(selectedProducts: [:], knownProducts: [item.name]) {
+                                            showSuccesAlert = true
+                                        } else {
+                                            showErrorAlert = true
+                                        }
+                                        
+                                        showLoading = false
+                                    }
+                                })
+                            }
                         }
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
                 }
             }
+        }
+        .alert("Products succesfully added to your inventory!", isPresented: $showSuccesAlert) {
+            Button("Close") {
+                dismiss()
+            }
+        }
+        .alert("Error adding your products to your inventory", isPresented: $showErrorAlert) {
+            Button("Close", role: .cancel) {}
         }
     }
     
@@ -246,13 +251,11 @@ struct SearchView: View {
                     return FoodItem(
                         id: UUID(),
                         name: product.product_name,
-                        store: product.source_id ?? "Unknown",
+                        store: product.source_id?.rawValue ?? "Unknown",
                         image: product.product_image ?? "chicken",
                         expiryDate: expiryDate
                     )
                 }
-                
-            } else if let category = category {
                 
             }
             
@@ -291,7 +294,6 @@ struct SearchView: View {
 struct SearchBarView: View {
     @Binding var searchText: String
     @Binding var isSearching: Bool
-    var onFilterTap: () -> Void
     
     var body: some View {
         HStack {
@@ -330,12 +332,6 @@ struct SearchBarView: View {
                 .padding(.leading, 8)
                 .transition(.move(edge: .trailing))
                 .animation(.default, value: isSearching)
-            } else {
-                Button(action: onFilterTap) {
-                    Image(systemName: "slider.horizontal.3")
-                        .foregroundColor(Color(UIColor.systemTeal))
-                        .padding(.leading, 8)
-                }
             }
         }
     }
@@ -447,87 +443,6 @@ struct CategoryCard: View {
         }
         .frame(width: 90)
         .onTapGesture(perform: onTap)
-    }
-}
-
-// Search Result Item View
-struct SearchResultItemView: View {
-    var recentSearchesHandler = RecentSearchesHandler()
-    let item: FoodItem
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            // Food icon with background
-            ZStack {
-                Circle()
-                    .fill(bgColorForItem)
-                    .frame(width: 60, height: 60)
-                
-                Image(systemName: symbolNameForItem)
-                    .font(.system(size: 26))
-                    .foregroundColor(bgColorForItem.opacity(1.5))
-            }
-            
-            // Item details
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.name)
-                    .font(.system(size: 17, weight: .medium))
-                
-                Text(item.store)
-                    .font(.system(size: 15))
-                    .foregroundColor(.gray)
-                
-                // Expiry indicator
-                HStack(spacing: 4) {
-                    Image(systemName: "exclamationmark.circle.fill")
-                        .foregroundColor(expiryColor)
-                        .font(.system(size: 12))
-                    
-                    Text(item.expiryText)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(expiryColor)
-                }
-            }
-            
-            Spacer()
-            
-            Button(action: {
-                var recentSearches = recentSearchesHandler.getRecentSearches()
-                
-                recentSearches.insert(item.name, at: recentSearches.endIndex)
-                
-                RecentSearchesHandler().setRecentSearches(recentSearches)
-            }) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 26))
-                    .foregroundColor(Color(UIColor.systemTeal))
-            }
-        }
-        .padding(16)
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
-    }
-    
-    // Background color based on the item
-    private var bgColorForItem: Color {
-        return Color(red: 122/255, green: 190/255, blue: 203/255).opacity(0.2)
-    }
-    
-    // Symbol based on food type
-    private var symbolNameForItem: String {
-        return "fork.knife"
-    }
-    
-    // Color based on days until expiry
-    private var expiryColor: Color {
-        if item.daysUntilExpiry == 0 {
-            return .red
-        } else if item.daysUntilExpiry <= 2 {
-            return .orange
-        } else {
-            return Color(red: 122/255, green: 190/255, blue: 203/255)
-        }
     }
 }
 
