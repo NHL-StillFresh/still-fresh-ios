@@ -7,7 +7,9 @@
 		<string>Sofia Pro Black Az.otf</string>
 		<string>Sofia Pro Bold Az.otf</string>
 	</array>
-	<key>NSCameraUsageDescription</key>
-	<string>We need access to your camera to scan QR codes for joining houses.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>
