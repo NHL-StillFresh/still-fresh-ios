@@ -43,7 +43,7 @@ struct TestSearchView: View {
             
             if let selected = selectedProduct {
                 VStack(spacing: 12) {
-                    Button("Add to basket") {
+                    Button("Add to inventory") {
                         Task {
                             do {
                                 // Try to authenticate first

@@ -70,14 +70,14 @@ struct CheckProductsView: View {
                 }
                 Button("Cancel", role: .cancel) { }
             } message: {
-                Text("You haven't verified all unknown products yet. Only the products you've selected will be added to your basket. Continue anyway?")
+                Text("You haven't verified all unknown products yet. Only the products you've selected will be added to your inventory. Continue anyway?")
             }
-            .alert("Products succesfully added to your basket!", isPresented: $showSuccesAlert) {
+            .alert("Products succesfully added to your inventory!", isPresented: $showSuccesAlert) {
                 Button("Close") {
                     dismiss()
                 }
             }
-            .alert("Error adding your products to your basket", isPresented: $showSuccesAlert) {
+            .alert("Error adding your products to your inventory", isPresented: $showSuccesAlert) {
                 Button("Close", role: .cancel) {}
             }
         }
@@ -130,7 +130,7 @@ struct CheckProductsView: View {
                                 .font(.system(size: 14, weight: .medium))
                         }
                         
-                        Text(isAddingProducts ? "Adding to Basket..." : "Add to Basket")
+                        Text(isAddingProducts ? "Adding to Inventory..." : "Add to Inventory")
                             .font(.system(size: 15, weight: .semibold))
                     }
                     .foregroundColor(.white)
