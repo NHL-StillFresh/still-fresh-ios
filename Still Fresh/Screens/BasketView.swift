@@ -7,6 +7,10 @@ struct BasketView: View {
     @State private var showErrorAlert = false
     @State private var selectedItems: Set<UUID> = []
     @State private var sheetHeight : PresentationDetent = .height(320)
+    
+    // Date picker sheet states
+    @State private var showDatePicker = false
+    @State private var selectedFoodItemForDatePicker: FoodItem?
 
     @State var sectionHeaders: [BasketSectionHeader] = []
     @State var groupedItems: [BasketSectionHeader: [FoodItem]] = [:]
@@ -60,7 +64,8 @@ struct BasketView: View {
                                 selectedItems: selectedItems,
                                 onToggleSelection: toggleSelection,
                                 onDeleteItem: deleteItem,
-                                onRefreshData: refreshData
+                                onRefreshData: refreshData,
+                                onOpenDatePicker: openDatePicker
                             )
                         }
                         
@@ -72,7 +77,8 @@ struct BasketView: View {
                                 selectedItems: selectedItems,
                                 onToggleSelection: toggleSelection,
                                 onDeleteItem: deleteItem,
-                                onRefreshData: refreshData
+                                onRefreshData: refreshData,
+                                onOpenDatePicker: openDatePicker
                             )
                         }
                         
@@ -84,7 +90,8 @@ struct BasketView: View {
                                 selectedItems: selectedItems,
                                 onToggleSelection: toggleSelection,
                                 onDeleteItem: deleteItem,
-                                onRefreshData: refreshData
+                                onRefreshData: refreshData,
+                                onOpenDatePicker: openDatePicker
                             )
                         }
                         
@@ -119,14 +126,25 @@ struct BasketView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showAddView) {
-                AddView()
-                    .presentationDetents([sheetHeight], selection: $sheetHeight)
-                    .interactiveDismissDisabled(false)
-                    .presentationDragIndicator(.visible)
-                    .presentationCornerRadius(24)
-                    .presentationCompactAdaptation(.none)
+                    .sheet(isPresented: $showAddView) {
+            AddView()
+                .presentationDetents([sheetHeight], selection: $sheetHeight)
+                .interactiveDismissDisabled(false)
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(24)
+                .presentationCompactAdaptation(.none)
+        }
+        .sheet(isPresented: $showDatePicker) {
+            if let selectedFoodItem = selectedFoodItemForDatePicker {
+                ExpiryDatePickerSheet(
+                    isPresented: $showDatePicker,
+                    foodItem: selectedFoodItem,
+                    onDateUpdated: { newDate in
+                        updateExpiryDate(for: selectedFoodItem, newDate: newDate)
+                    }
+                )
             }
+        }
         }
         .alert("Error loading data",
                isPresented: $showErrorAlert) {
@@ -223,6 +241,37 @@ struct BasketView: View {
             }
         }
     }
+    
+    private func updateExpiryDate(for item: FoodItem, newDate: Date) {
+        guard let houseInventoryId = item.house_inventory_id else {
+            print("Cannot update item: missing house_inventory_id")
+            showDatePicker = false
+            return
+        }
+        
+        Task {
+            do {
+                try await BasketHandler.updateInventoryItemExpiryDate(houseInventoryId: houseInventoryId, newExpiryDate: newDate)
+                await MainActor.run {
+                    showDatePicker = false
+                    selectedFoodItemForDatePicker = nil
+                    refreshData()
+                }
+            } catch {
+                print("Error updating expiry date: \(error)")
+                await MainActor.run {
+                    showDatePicker = false
+                    selectedFoodItemForDatePicker = nil
+                    showErrorAlert = true
+                }
+            }
+        }
+    }
+    
+    private func openDatePicker(for item: FoodItem) {
+        selectedFoodItemForDatePicker = item
+        showDatePicker = true
+    }
 }
 
 
@@ -234,6 +283,7 @@ struct FoodItemSectionView: View {
     let onToggleSelection: (FoodItem) -> Void
     let onDeleteItem: (FoodItem) -> Void
     let onRefreshData: () -> Void
+    let onOpenDatePicker: (FoodItem) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -259,11 +309,12 @@ struct FoodItemSectionView: View {
                     ForEach(items) { item in
                         FoodItemRowView(
                             item: item,
+                            onClickFunction: { onOpenDatePicker(item) },
                             isSearchObject: false,
                             isEditMode: isEditMode,
                             isSelected: selectedItems.contains(item.id),
                             onToggleSelection: { onToggleSelection(item) },
-                            buttonIcon: "chevron.right",
+                            buttonIcon: "calendar",
                             showSwipeToDelete: false
                         )
                         .listRowBackground(Color.clear)
@@ -287,11 +338,12 @@ struct FoodItemSectionView: View {
                     ForEach(items) { item in
                         FoodItemRowView(
                             item: item,
+                            onClickFunction: { onOpenDatePicker(item) },
                             isSearchObject: false,
                             isEditMode: isEditMode,
                             isSelected: selectedItems.contains(item.id),
                             onToggleSelection: { onToggleSelection(item) },
-                            buttonIcon: "chevron.right",
+                            buttonIcon: "calendar",
                             showSwipeToDelete: false
                         )
                         .padding(.vertical, 6)
