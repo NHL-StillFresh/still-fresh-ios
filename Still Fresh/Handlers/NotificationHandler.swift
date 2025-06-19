@@ -50,20 +50,24 @@ func sendCalendarNotification(title: String, body: String, date: Date) {
         return
     }
     
-    let center = UNUserNotificationCenter.current()
-    let content = UNMutableNotificationContent()
-    content.title = title
-    content.body = body
-    content.sound = UNNotificationSound.default
-    
-    let trigger = UNCalendarNotificationTrigger(dateMatching: Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date), repeats: false)
-    
-    let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
-    
-    center.add(request) { error in
-        if let error = error {
-            print("Error scheduling notification: \(error)")
+    do {
+        let center = UNUserNotificationCenter.current()
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = UNNotificationSound.default
+        
+        let trigger = UNCalendarNotificationTrigger(dateMatching: Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date), repeats: false)
+        
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+        
+        center.add(request) { error in
+            if let error = error {
+                print("Error scheduling notification: \(error)")
+            }
         }
+    } catch {
+        print("Error in sendCalendarNotification: \(error)")
     }
 }
 
@@ -105,12 +109,15 @@ func setProductNotifications(for houseInventories: [HouseInventoryModelWithProdu
             }
         }
     }
-}
-
+} 
 func setProductNotificationsFromBasket() async {
-    resetAllProductNotifications();
-    let productItems = try! await BasketHandler.getAllBasketProducts();
-    setProductNotifications(for: productItems);
+    do {
+        resetAllProductNotifications();
+        let productItems = try await BasketHandler.getAllBasketProducts();
+        setProductNotifications(for: productItems);
+    } catch {
+        print("Error setting product notifications from basket: \(error)")
+    }
 }
 
 class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
