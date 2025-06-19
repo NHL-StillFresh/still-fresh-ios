@@ -124,7 +124,7 @@ class ProfileObject : ObservableObject {
     let UID: String
     @Published var firstName: String = "John"
     @Published var lastName: String = "Doe"
-    @Published var image: String? = nil
+    @Published var image: URL? = nil
     
     // Used for account creation I guess
     init(UID: String) {
@@ -136,10 +136,11 @@ class ProfileObject : ObservableObject {
         self.UID = UID
         self.firstName = firstName
         self.lastName = lastName
+        self.image = AvatarGenerator.generateAvatarImageURL(withName: firstName + " " + lastName)
     }
     
     // Used when an account is actually found
-    init(UID: String, firstName: String, lastName: String, image: String) {
+    init(UID: String, firstName: String, lastName: String, image: URL) {
         self.UID = UID
         self.firstName = firstName
         self.lastName = lastName

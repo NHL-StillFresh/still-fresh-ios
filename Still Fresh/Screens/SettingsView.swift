@@ -13,8 +13,6 @@ struct SettingsView: View {
     @State private var darkMode = false
     @State private var expiryNotificationDays = 3
     @State private var selectedUnit = "Days"
-    @State private var username = "App Tester"
-    @State private var email = "apptester@stillfresh.nl"
     @State private var showEditProfile = false
     @State private var showErrorMessage = false
     @State private var alertType: AlertType = .error
@@ -33,24 +31,24 @@ struct SettingsView: View {
                 Section {
                     HStack(spacing: 15) {
                         ZStack {
-                            Circle()
-                                .fill(tealColor.opacity(0.2))
-                                .frame(width: 70, height: 70)
-                            
-                            Image(systemName: "person.fill")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 30, height: 30)
-                                .foregroundColor(tealColor)
+                            AsyncImage(url: userState.userProfile?.image) { image in
+                                image
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 70, height: 40)
+                                    .clipShape(Circle())
+                                    .overlay(
+                                        Circle().stroke(Color.teal, lineWidth: 2)
+                                    )
+                            } placeholder: {
+                                ProgressView()
+                                    .frame(width: 40, height: 40)
+                            }
                         }
                         
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(userState.userProfile?.firstName ?? "User")
+                            Text("\(userState.userProfile?.firstName ?? "User") \(userState.userProfile?.lastName ?? "")")
                                 .font(.system(size: 20, weight: .bold))
-                            
-                            Text(email)
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
                         }
                         
                         Spacer()
@@ -66,7 +64,7 @@ struct SettingsView: View {
                                 .clipShape(Circle())
                         }
                         .sheet(isPresented: $showEditProfile) {
-                            ProfileEditView(username: $username, email: $email)
+                            ProfileEditView(userState: userState)
                         }
                     }
                     .padding(.vertical, 6)
