@@ -196,7 +196,7 @@ class WrappedAnalyticsHandler: ObservableObject {
                 let daysDifference = Calendar.current.dateComponents([.day], from: purchaseDateObj, to: expiryDate).day ?? 0
                 totalDays += Double(daysDifference)
                 validItems += 1
-            } else if let expiryDate = dateFormatter.date(from: inventory.inventory_best_before_date) {
+            } else if dateFormatter.date(from: inventory.inventory_best_before_date) != nil {
                 // Use default expiration days from product if no purchase date
                 let expirationDays = inventory.products.product_expiration_in_days ?? 7
                 totalDays += Double(expirationDays)
