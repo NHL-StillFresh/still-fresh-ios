@@ -18,8 +18,9 @@ class TextRecognizer {
     /// The Vision request.
     var request = RecognizeTextRequest()
     
-    func performOCR(imageData: Data) async throws {
+    func performOCR(imageData: Data) async throws -> [RecognizedTextObservation] {
 
+        
         scanSucceeded = false
 
         /// Clear the `observations` array for photo recapture.
@@ -79,11 +80,11 @@ class TextRecognizer {
         }) {
             observations = []
             scanSucceeded = false
-            return
+            return observations
         }
 
         scanSucceeded = true
-        return
+        return observations
     }
 }
 

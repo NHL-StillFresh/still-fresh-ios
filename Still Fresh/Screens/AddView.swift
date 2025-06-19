@@ -120,8 +120,7 @@ struct AddView: View {
                 scanStatus = .processing
                 
                 Task {
-                    try await recognizer.performOCR(imageData: image.jpegData(compressionQuality: 1)!)
-                    self.productLines = recognizer.observations.compactMap { observation in
+                    productLines = try await recognizer.performOCR(imageData: image.jpegData(compressionQuality: 1)!).compactMap { observation in
                         observation.topCandidates(1).first?.string
                     }
                     
@@ -139,33 +138,38 @@ struct AddView: View {
                         scanStatus = .noProductsFound
                     }
                     
-                    showImageUploader = false
-                    showScanResults = true
+                    DispatchQueue.main.async {
+                        showScanResults = true
+                    }
                 }
             }
         }
         .sheet(isPresented: $showScanResults) {
-            ScanResultsView(productLines: productLines, debugText: debugText, scanStatus: scanStatus) {
+            ScanResultsView(productLines: $productLines, debugText: debugText, scanStatus: scanStatus) {
                 showScanResults = false
                 dismiss()
             }.background(Color(.white))
+                .presentationDragIndicator(.visible)
+                .onAppear{
+                    print(productLines)
+                }
         }
         .sheet(isPresented: $showImageUploader) {
+            
             SingleImagePicker { data in
                 isProcessing = true
                 scanStatus = .processing
                 
                 Task {
-                    try await recognizer.performOCR(imageData: data)
-                    self.productLines = recognizer.observations.compactMap { observation in
+                    productLines = try await recognizer.performOCR(imageData: data).compactMap { observation in
                         observation.topCandidates(1).first?.string
                     }
-                    
+                                        
                     if (productLines.count > 1) && ((productLines[0].contains("=") || (productLines[0].lowercased().contains("totaal"))) || (productLines[0].lowercased().contains("betaald"))) {
-                     productLines.remove(at: 0)
+                        productLines.remove(at: 0)
                     }
                     
-                    if self.productLines.isEmpty {
+                    if productLines.isEmpty {
                         scanStatus = .noProductsFound
                     } else {
                         scanStatus = .success
@@ -174,10 +178,12 @@ struct AddView: View {
                     if !recognizer.scanSucceeded {
                         scanStatus = .noProductsFound
                     }
-                    
-                    showImageUploader = false
-                    showScanResults = true
+                                        
+                    DispatchQueue.main.async {
+                        self.showScanResults = true
+                    }
                 }
+                
             }
         }
     }
@@ -261,7 +267,7 @@ struct PressButtonStyle: ButtonStyle {
 }
 
 struct ScanResultsView: View {
-    @State var productLines: [String]
+    @Binding var productLines: [String]
     let debugText: String
     let scanStatus: AddView.ScanStatus
     let onDone: () -> Void
@@ -272,60 +278,88 @@ struct ScanResultsView: View {
     
     var body: some View {
         VStack {
-            Text("Products on receipt:")
-                .font(.title)
-                .padding()
-            
-            Text("Verify that the scan contains no errors. If no products shown, then there might be a problem with the scan.")
-                .padding(.horizontal, 24)
-            
-            List(productLines, id: \.self) { line in
-                HStack {
-                    Text(line)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                    
-                    Button(action: {
-                        itemToRemove = line
-                        showAlert = true
-                    }) {
-                        Image(systemName: "trash")
-                            .foregroundColor(.red)
-                    }
-                }
-                .padding(.vertical, 8)
-                .lineSpacing(8)
-                .listRowBackground(Color(UIColor.systemBackground))
-            }
-            .scrollContentBackground(.hidden)
-            .alert(isPresented: $showAlert) {
-                Alert(
-                    title: Text("Confirm Removal"),
-                    message: Text("Are you sure you want to remove \(itemToRemove ?? "")?"),
-                    primaryButton: .destructive(Text("Remove")) {
-                        if let item = itemToRemove, let index = productLines.firstIndex(of: item) {
-                            productLines.remove(at: index)
-                        }
-                    },
-                    secondaryButton: .cancel()
-                )
-            }
-            
-            Spacer()
-            
-            Button("Next") {
-                showProductsView = true
-            }
-            .padding()
-            .frame(minWidth: 120)
-            .background(Color(red: 0.04, green: 0.29, blue: 0.29))
-            .foregroundColor(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .padding(.bottom)
-            .sheet(isPresented: $showProductsView) {
-                CheckProductsView(productLines: productLines)
+            if scanStatus == .success {
+                Text("Products on receipt:")
+                    .font(.title)
+                    .padding()
                 
+                Text("Verify that the scan contains no errors.")
+                    .padding(.horizontal, 24)
+                
+                List(productLines, id: \.self) { line in
+                    HStack {
+                        Text(line)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                        
+                        Button(action: {
+                            itemToRemove = line
+                            showAlert = true
+                        }) {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
+                        }
+                    }
+                    .padding(.vertical, 8)
+                    .lineSpacing(8)
+                    .listRowBackground(Color(UIColor.systemBackground))
+                }
+                .scrollContentBackground(.hidden)
+                .alert(isPresented: $showAlert) {
+                    Alert(
+                        title: Text("Confirm Removal"),
+                        message: Text("Are you sure you want to remove \(itemToRemove ?? "")?"),
+                        primaryButton: .destructive(Text("Remove")) {
+                            if let item = itemToRemove, let index = productLines.firstIndex(of: item) {
+                                productLines.remove(at: index)
+                            }
+                        },
+                        secondaryButton: .cancel()
+                    )
+                }
+                
+                Spacer()
+                
+                Button("Next") {
+                    showProductsView = true
+                }
+                .padding()
+                .frame(minWidth: 120)
+                .background(Color(red: 0.04, green: 0.29, blue: 0.29))
+                .foregroundColor(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .padding(.bottom)
+                .sheet(isPresented: $showProductsView) {
+                    CheckProductsView(productLines: productLines)
+                    
+                }
+                .onAppear {
+                    print("This one first?")
+                    print(productLines)
+                }
+            } else {
+                VStack(spacing: 24) {
+                    Spacer()
+                    
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 50))
+                    
+                    VStack(spacing: 8) {
+                        Text("No products found")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundColor(.primary)
+                        
+                        Text("Please try again")
+                            .font(.system(size: 16))
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+                    }
+                    
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
     }

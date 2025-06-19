@@ -24,6 +24,10 @@ class SupabaseProductHandler {
                 let expiryDays = await ExpiryDateGuessModel()
                     .fetchExpiryDateFromAPI(productName: product.title)
                 
+                if expiryDays == nil {
+                    return false
+                }
+                
                 let productModel = try await addOrFetchProduct(
                     title: product.title,
                     imageUrl: product.imageUrl,
