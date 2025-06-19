@@ -228,4 +228,27 @@ class BasketHandler {
             throw error
         }
     }
+    
+    public static func updateInventoryItemExpiryDate(houseInventoryId: Int, newExpiryDate: Date) async throws {
+        do {
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd"
+            dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+            
+            let expiryDateString = dateFormatter.string(from: newExpiryDate)
+            
+            let result = try await SupaClient
+                .from("house_inventories")
+                .update(["inventory_best_before_date": expiryDateString])
+                .eq("house_inventory_id", value: houseInventoryId)
+                .execute()
+            
+            print("Successfully updated expiry date for inventory item ID: \(houseInventoryId) to \(expiryDateString)")
+            
+            await setProductNotificationsFromBasket()
+        } catch {
+            print("Error updating inventory item expiry date: \(error)")
+            throw error
+        }
+    }
 }
