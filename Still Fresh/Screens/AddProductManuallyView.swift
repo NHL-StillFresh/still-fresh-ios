@@ -16,6 +16,7 @@ struct AddProductManuallyView: View {
     
     @State private var showErrorAlert = false
     @State private var showSuccesAlert = false
+    @State private var showLoading = false
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -128,34 +129,60 @@ struct AddProductManuallyView: View {
                 // List of search results
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        ForEach(searchResults) { item in
-                            FoodItemRowView(item: item, onClickFunction: {
-                                Task {
-                                    if (isSearchingOnAPI) {
-                                        let jumboProduct = JumboProduct(
-                                            id: "", title: item.name, quantity: nil, prices: JumboProduct.Prices(price: JumboProduct.Prices.Price(amount: 0, unitSize: "")), imageInfo: nil, available: true
-                                        )
+                        if (showLoading) {
+                            ProgressView()
+                            Spacer()
+                            Text("We are adding your products...")
+                        } else {
+                            ForEach(searchResults) { item in
+                                FoodItemRowView(item: item, onClickFunction: {
+                                    Task {
+                                        showLoading = true
                                         
-                                        if await SupabaseProductHandler.addAllSelectedProducts(selectedProducts: [searchText: jumboProduct], knownProducts: []) {
-                                            showSuccesAlert = true
+                                        if (isSearchingOnAPI) {
+                                            let jumboProduct = JumboProduct(
+                                                id: "", title: item.name, quantity: nil, prices: JumboProduct.Prices(price: JumboProduct.Prices.Price(amount: 0, unitSize: "")), imageInfo: nil, available: true
+                                            )
+                                            
+                                            if await SupabaseProductHandler.addAllSelectedProducts(selectedProducts: [searchText: jumboProduct], knownProducts: []) {
+                                                showSuccesAlert = true
+                                            } else {
+                                                showErrorAlert = true
+                                            }
                                         } else {
-                                            showErrorAlert = true
+                                            if await SupabaseProductHandler.addAllSelectedProducts(selectedProducts: [:], knownProducts: [item.name]) {
+                                                showSuccesAlert = true
+                                            } else {
+                                                showErrorAlert = true
+                                            }
                                         }
-                                    } else {
-                                        if await SupabaseProductHandler.addAllSelectedProducts(selectedProducts: [:], knownProducts: [item.name]) {
-                                            showSuccesAlert = true
-                                        } else {
-                                            showErrorAlert = true
-                                        }
+                                        
+                                        showLoading = false
+                                        
                                     }
-                                    
-                                }
-                            }, showExpiryDate: false
-                            )
+                                }, showExpiryDate: false
+                                )
+                            }
                         }
                     }
                     .padding(.horizontal, 16)
-                    .padding(.top, 12)
+                    .padding(.vertical, 12)
+                    Text("Your product not shown?")
+                    Button(action: {
+                        Task {
+                            isSearchingOnAPI = true
+                            searchResults = await getProductsFromAPI()
+                        }
+                    }) {
+                        Text("Add external item")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+                            .background(Color(red: 0.04, green: 0.29, blue: 0.29))
+                            .cornerRadius(12)
+                    }
+                    .padding(.top, 8)
                 }
             }
         }
@@ -229,8 +256,6 @@ struct AddProductManuallyView: View {
     }
     
 }
-
-
 
 #Preview {
     AddProductManuallyView()
