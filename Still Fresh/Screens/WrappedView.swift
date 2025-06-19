@@ -57,12 +57,6 @@ struct WrappedView: View {
                     }
                     
                     Spacer()
-                    
-                    Button(action: shareWrapped) {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(.white.opacity(0.8))
-                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
@@ -385,18 +379,6 @@ struct WrappedView: View {
             Spacer()
             
             VStack(spacing: 16) {
-                Button(action: shareWrapped) {
-                    HStack {
-                        Image(systemName: "square.and.arrow.up")
-                        Text("Share Your Wrapped")
-                    }
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.black)
-                    .padding(.horizontal, 32)
-                    .padding(.vertical, 16)
-                    .background(Color.white)
-                    .clipShape(Capsule())
-                }
                 
                 Button(action: { dismiss() }) {
                     Text("Done")
