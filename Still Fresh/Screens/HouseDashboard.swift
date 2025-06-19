@@ -2,10 +2,9 @@ import SwiftUI
 import Supabase
 
 struct HouseDashboard: View {
-    @StateObject private var appStore = HouseStoreModel.shared
+    @StateObject private var appStore = HouseStoreModel()
     private let tealColor = Color(UIColor.systemTeal)
     
-    // State variables for popups and editing
     @State private var showLeaveConfirmation = false
     @State private var showRemoveMemberConfirmation = false
     @State private var showCreateHouseSheet = false
@@ -14,8 +13,8 @@ struct HouseDashboard: View {
     @State private var editedName = ""
     @State private var showCopiedToast = false
     @State private var joinHouseId = ""
-
-    // House selection items
+    @Environment(\.dismiss) private var dismiss
+    
     private var houseSelectionItems: [DropdownItem] {
         appStore.userHouses.map { house in
             DropdownItem(
@@ -36,13 +35,24 @@ struct HouseDashboard: View {
                     VStack(spacing: 24) {
                         ScrollView {
                             VStack(spacing: 24) {
-                                // House info card
                                 groupInfoCard
                                     .padding(.horizontal, 16)
                                 
-                                // Members section
                                 membersSection
                                     .padding(.horizontal, 16)
+                                
+                                Button(action: {
+                                    dismiss()
+                                }) {
+                                    Text("Close")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 20)
+                                        .padding(.vertical, 12)
+                                        .background(Color(red: 0.04, green: 0.29, blue: 0.29))
+                                        .cornerRadius(12)
+                                }
+                                .padding(.top, 8)
                                 
                                 Spacer(minLength: 40)
                             }
@@ -52,20 +62,8 @@ struct HouseDashboard: View {
             }
             .navigationTitle("House Dashboard")
             .navigationBarTitleDisplayMode(.large)
-//            .toolbar {
-//                ToolbarItem(placement: .navigationBarTrailing) {
-//                    Button(action: {
-//                        showCreateHouseSheet = true
-//                    }) {
-//                        Image(systemName: "plus")
-//                            .foregroundColor(tealColor)
-//                    }
-//                }
-//            }
             .task {
                 await appStore.loadUserHouses()
-                print("DEBUG [HouseDashboard] Houses loaded - Count: \(appStore.userHouses.count)")
-                print("DEBUG [HouseDashboard] Selected house: \(appStore.selectedHouse?.houseName ?? "None")")
             }
             .alert(isPresented: $appStore.joinSuccess) {
                 Alert(
@@ -81,22 +79,6 @@ struct HouseDashboard: View {
             } message: {
                 Text(appStore.errorMessage ?? "Unknown error")
             }
-            // Leave house confirmation
-            .sheet(isPresented: $showLeaveConfirmation) {
-                ConfirmationPopup(
-                    title: "Leave House",
-                    message: "Are you sure you want to leave this house? This action cannot be undone.",
-                    confirmText: "Leave",
-                    isDestructive: true,
-                    isPresented: $showLeaveConfirmation
-                ) {
-                    Task {
-                        if let houseId = appStore.selectedHouse?.houseId {
-                            try? await appStore.leaveHouse(houseId: houseId)
-                        }
-                    }
-                }
-            }
             // Create house sheet
             .sheet(isPresented: $showCreateHouseSheet) {
                 CreateHouseView(isPresented: $showCreateHouseSheet) {
@@ -106,41 +88,45 @@ struct HouseDashboard: View {
                 }
             }
         }
-        // Remove member confirmation - moved outside NavigationView
-        .sheet(isPresented: $showRemoveMemberConfirmation) {
-            if let member = memberToRemove {
-                ConfirmationPopup(
-                    title: "Remove Member",
-                    message: "Are you sure you want to remove \(member.profile_first_name) from the house?",
-                    confirmText: "Remove",
-                    isDestructive: true,
-                    isPresented: $showRemoveMemberConfirmation
-                ) {
-                    Task {
-                        if let houseId = appStore.selectedHouse?.houseId {
-                            try? await appStore.removeMember(userId: member.user_id, houseId: houseId)
-                        }
+        .alert("Leave House?", isPresented: $showLeaveConfirmation, actions: {
+            Button("Cancel") {
+                showRemoveMemberConfirmation = false
+            }
+            
+            Button(action: {
+                showRemoveMemberConfirmation = false
+                Task {
+                    if let houseId = appStore.selectedHouse?.houseId {
+                        try? await appStore.leaveHouse(houseId: houseId)
                     }
                 }
+            }) {
+                Text("Leave house")
+                    .foregroundStyle(Color.red)
             }
-        }
-        // Copied to clipboard toast
-        .overlay(
-            Group {
-                if showCopiedToast {
-                    VStack {
-                        Spacer()
-                        Text("Copied to clipboard!")
-                            .foregroundColor(.white)
-                            .padding()
-                            .background(Color.black.opacity(0.75))
-                            .cornerRadius(8)
-                            .padding(.bottom, 32)
+        })
+        .alert("Remove Member?", isPresented: $showRemoveMemberConfirmation, actions: {
+            Button("Cancel") {
+                showRemoveMemberConfirmation = false
+            }
+            
+            Button(action: {
+                showRemoveMemberConfirmation = false
+                Task {
+                    if let member = memberToRemove, let houseId = appStore.selectedHouse?.houseId {
+                        try? await appStore.removeMember(userId: member.user_id, houseId: houseId)
                     }
-                    .transition(.move(edge: .bottom))
                 }
+            }) {
+                Text("Remove")
+                    .foregroundStyle(Color.red)
             }
-        )
+        })
+        .alert("Copied to clipboard!", isPresented: $showCopiedToast, actions: {
+            Button("OK") {
+                showCopiedToast = false
+            }
+        })
     }
     
     private var loadingView: some View {
@@ -425,7 +411,7 @@ struct HouseDashboard: View {
 // Preview provider
 struct HouseDashboard_Previews: PreviewProvider {
     static var previews: some View {
-        let appStore = HouseStoreModel.shared
+        let appStore = HouseStoreModel()
         
         // Load real data from database
         Task {

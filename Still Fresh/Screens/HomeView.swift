@@ -7,7 +7,7 @@ struct HomeView: View {
     
     @StateObject private var tipsViewModel = FoodTipsViewModel()
     @StateObject private var recipesViewModel = RecipesViewModel()
-    @StateObject private var appStore = HouseStoreModel.shared
+    @StateObject private var appStore = HouseStoreModel()
     
     // Animation states
     @State private var tipsOpacity = 0.0
@@ -16,29 +16,6 @@ struct HomeView: View {
     @State private var tipsOffset: CGFloat = 30
     @State private var expiringItemsOffset: CGFloat = 40
     @State private var recipesOffset: CGFloat = 50
-    
-//    // Time-based greeting
-//    private var greeting: String {
-//        let hour = Calendar.current.component(.hour, from: Date())
-//        switch hour {
-//        case 0..<12:
-//            return "Good morning"
-//        case 12..<17:
-//            return "Good afternoon"
-//        default:
-//            return "Good evening"
-//        }
-//    }
-//    
-//    // House selection items
-//    private var houseSelectionItems: [DropdownItem] {
-//        appStore.userHouses.map { house in
-//            DropdownItem(
-//                title: house.houseName,
-//                items: nil
-//            )
-//        }
-//    }
     
     @State private var foodItems: [FoodItem] = []
     @State private var showInventoryView = false
@@ -78,8 +55,6 @@ struct HomeView: View {
         }
         .task {
             await appStore.loadUserHouses()
-            print("DEBUG [HomeView] Houses loaded - Count: \(appStore.userHouses.count)")
-            print("DEBUG [HomeView] Selected house: \(appStore.selectedHouse?.houseName ?? "None")")
         }
         .onAppear {
             if selectedHouseId == nil {
