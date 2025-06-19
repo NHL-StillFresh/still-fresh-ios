@@ -6,6 +6,8 @@ struct ProfileEditView: View {
     @Environment(\.presentationMode) var presentationMode
     @ObservedObject var userState: UserStateModel
     
+    @State private var isFirstNameEmpty: Bool = false
+
     @State private var editedFirstName: String
     @State private var editedLastName: String
     
@@ -22,10 +24,6 @@ struct ProfileEditView: View {
             VStack(spacing: 20) {
                 // Profile photo
                 ZStack {
-                    Circle()
-                        .fill(tealColor.opacity(0.2))
-                        .frame(width: 100, height: 100)
-                    
                     Image(systemName: "person.fill")
                         .resizable()
                         .scaledToFit()
@@ -37,16 +35,19 @@ struct ProfileEditView: View {
                         Spacer()
                         HStack {
                             Spacer()
-                            Image(systemName: "camera.fill")
-                                .foregroundColor(.white)
-                                .font(.system(size: 14))
-                                .padding(8)
-                                .background(tealColor)
-                                .clipShape(Circle())
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white, lineWidth: 2)
-                                )
+                            AsyncImage(url: userState.userProfile?.image) { image in
+                                    image
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 100, height: 100)
+                                        .clipShape(Circle())
+                                        .overlay(
+                                            Circle().stroke(Color.teal, lineWidth: 2)
+                                        )
+                                } placeholder: {
+                                    ProgressView()
+                                        .frame(width: 40, height: 40)
+                                }
                         }
                     }
                     .frame(width: 100, height: 100)
@@ -66,6 +67,13 @@ struct ProfileEditView: View {
                             .padding()
                             .background(Color(.systemGray6))
                             .cornerRadius(10)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(isFirstNameEmpty ? Color.red : Color.clear, lineWidth: 2)
+                            )
+                            .onChange(of: editedFirstName) {
+                                isFirstNameEmpty = false
+                            }
                     }
                     
                     VStack(alignment: .leading, spacing: 8) {
@@ -89,7 +97,12 @@ struct ProfileEditView: View {
                     Task {
                         do {
                             
-                            debugPrint(userState.userProfile?.UID ?? "")
+                            if editedFirstName == "" {
+                                print("First name is empty")
+                                isFirstNameEmpty = true
+                                return
+                            }
+                            isFirstNameEmpty = false
                             // Update the profile in the database
                             let updatedProfile: ProfileModel = try await SupaClient
                                 .from("profiles")

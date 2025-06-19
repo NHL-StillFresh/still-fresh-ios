@@ -21,7 +21,7 @@ class AvatarGenerator {
     
     static func generateAvatarImageURL(
         withName name: String,
-        category: Category = .THUMBS
+        category: Category = .EMOJI
     ) -> URL? {
         var urlComponents = URLComponents()
         urlComponents.scheme = "https"

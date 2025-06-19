@@ -31,15 +31,19 @@ struct SettingsView: View {
                 Section {
                     HStack(spacing: 15) {
                         ZStack {
-                            Circle()
-                                .fill(tealColor.opacity(0.2))
-                                .frame(width: 70, height: 70)
-                            
-                            Image(systemName: "person.fill")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 30, height: 30)
-                                .foregroundColor(tealColor)
+                            AsyncImage(url: userState.userProfile?.image) { image in
+                                image
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 70, height: 40)
+                                    .clipShape(Circle())
+                                    .overlay(
+                                        Circle().stroke(Color.teal, lineWidth: 2)
+                                    )
+                            } placeholder: {
+                                ProgressView()
+                                    .frame(width: 40, height: 40)
+                            }
                         }
                         
                         VStack(alignment: .leading, spacing: 4) {
