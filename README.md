@@ -38,6 +38,8 @@ StillFresh is a school project developed by a team of 4 students. The app aims t
 - Supabase for backend services
 - [PocketBase Swift](https://github.com/supabase/supabase-swift) for PocketBase integration
 - [Dicebear](https://www.dicebear.com/) API (used for profile image generation)
+- [OpenRouter.ai](https://openrouter.ai/) for AI integration
+- Jumbo API
 
 ## 🚀 Getting Started
 
