@@ -104,8 +104,8 @@ struct SetupView : View {
                                 .execute()
                                 .value
                             
-                            userState.userProfile?.firstName = insertedProfile.profile_first_name
-                            userState.userProfile?.lastName = insertedProfile.profile_last_name
+                            let newProfile: ProfileObject = ProfileObject(UID: insertedProfile.user_id, firstName: insertedProfile.profile_first_name, lastName: insertedProfile.profile_last_name)
+                            userState.userProfile = newProfile
                             userState.isSetup = true
                         } catch {
                             debugPrint(error.localizedDescription)
