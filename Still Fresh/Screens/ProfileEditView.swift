@@ -116,9 +116,9 @@ struct ProfileEditView: View {
                                 .execute()
                                 .value
                             
-                            // Update the local state
-                            userState.userProfile?.firstName = updatedProfile.profile_first_name
-                            userState.userProfile?.lastName = updatedProfile.profile_last_name
+                            let newProfile: ProfileObject = ProfileObject(UID: updatedProfile.user_id, firstName: updatedProfile.profile_first_name, lastName: updatedProfile.profile_last_name)
+                            
+                            userState.userProfile = newProfile
                             
                             presentationMode.wrappedValue.dismiss()
                         } catch {
