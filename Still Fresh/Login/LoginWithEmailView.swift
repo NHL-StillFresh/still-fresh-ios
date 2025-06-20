@@ -10,6 +10,7 @@ import Foundation
 
 enum AppState {
     case email
+    case choose
     case login
     case register
 }
@@ -49,10 +50,12 @@ struct LoginWithEmailView: View {
                 .padding(.top, 8)
                 
                 // Form content
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 12) {
                     switch loginState {
                     case .email:
                         FillInEmailView()
+                    case .choose:
+                        ChooseLoginOptionsView()
                     case .login:
                         FillInPasswordView()
                     case .register:
@@ -63,47 +66,47 @@ struct LoginWithEmailView: View {
                     Text(callbackMessage)
                         .foregroundColor(.red)
                     
-                    // Continue button
-                    Button(action: {
-                        callbackMessage = ""
-                        
-                        if loginState == .email {
-                            if email.isEmpty || !isValidEmail(email) {
-                                callbackMessage = "Please provide a valid email address."
-                                loginState = .email
+                    if (loginState != .choose) {
+                        Button(action: {
+                            callbackMessage = ""
+                            
+                            if loginState == .email {
+                                if email.isEmpty || !isValidEmail(email) {
+                                    callbackMessage = "Please provide a valid email address."
+                                    loginState = .email
+                                    return
+                                } else {
+                                    loginState = .choose
+                                }
+                            } else if loginState == .login {
+                                if password.isEmpty {
+                                    callbackMessage = "Please provide a password."
+                                    loginState = .login
+                                    return
+                                }
+                                authenticateUser()
                                 return
-                            } else {
-                                loginState = .login
+                            } else if loginState == .register {
+                                createUser()
                             }
-                        } else if loginState == .login {
-                            if password.isEmpty {
-                                callbackMessage = "Please provide a password."
-                                loginState = .login
-                                return
+                            
+                        }) {
+                            HStack {
+                                Spacer()
+                                Text("Continue")
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                Spacer()
                             }
-                            authenticateUser()
-                            return
-                        } else if loginState == .register {
-                            createUser()
+                            .frame(height: 56)
+                            .background(Color.white)
+                            .foregroundColor(Color("LoginBackgroundColor"))
+                            .cornerRadius(16)
+                            .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
                         }
-                        
-                    }) {
-                        HStack {
-                            Spacer()
-                            Text("Continue")
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                            Spacer()
-                        }
-                        .frame(height: 56)
-                        .background(Color.white)
-                        .foregroundColor(Color("LoginBackgroundColor"))
-                        .cornerRadius(16)
-                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
                     }
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, 12)
                 
                 Spacer()
             }
@@ -193,6 +196,43 @@ struct LoginWithEmailView: View {
             }
         }
     }
+    
+    func ChooseLoginOptionsView() -> some View {
+        VStack() {
+            Button(action: {
+                password = ""
+                loginState = .login
+            }) {
+                HStack {
+                    Spacer()
+                    Text("I already have an account")
+                        .fontWeight(.semibold)
+                    Spacer()
+                }
+                .frame(height: 50)
+                .background(Color.white)
+                .foregroundColor(Color("LoginBackgroundColor"))
+                .cornerRadius(8)
+            }
+            
+            
+            Button(action: {
+                password = ""
+                loginState = .register
+            }) {
+                HStack {
+                    Spacer()
+                    Text("Create new account")
+                        .fontWeight(.semibold)
+                    Spacer()
+                }
+                .frame(height: 50)
+                .background(Color.white)
+                .foregroundColor(Color("LoginBackgroundColor"))
+                .cornerRadius(8)
+            }
+        }
+    }
 
     func FillInPasswordView() -> some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -223,21 +263,7 @@ struct LoginWithEmailView: View {
                             .fill(Color.white.opacity(0.15))
                     )
                 if optForCreation {
-                    Button(action: {
-                        password = ""
-                        loginState = .register
-                    }) {
-                        HStack {
-                            Spacer()
-                            Text("Create new account")
-                                .fontWeight(.semibold)
-                            Spacer()
-                        }
-                        .frame(height: 50)
-                        .background(Color.white)
-                        .foregroundColor(Color("LoginBackgroundColor"))
-                        .cornerRadius(8)
-                    }
+                    
                 }
             }
         }

@@ -300,52 +300,22 @@ struct FoodItemSectionView: View {
             }
             .padding(.horizontal, 16)
             
-            // Use native SwiftUI List for proper swipe-to-delete behavior
-            if !isEditMode {
-                List {
-                    ForEach(items) { item in
-                        FoodItemRowView(
-                            item: item,
-                            onClickFunction: { onOpenDatePicker(item) },
-                            isSearchObject: false,
-                            isEditMode: isEditMode,
-                            isSelected: selectedItems.contains(item.id),
-                            onToggleSelection: { onToggleSelection(item) },
-                            buttonIcon: "calendar",
-                            showSwipeToDelete: false
-                        )
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16))
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive, action: {
-                                onDeleteItem(item)
-                            }) {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                    }
-                }
-                .listStyle(PlainListStyle())
-                .frame(height: CGFloat(items.count) * 90) // Approximate height per item
-                .scrollDisabled(true)
-            } else {
-                // Use VStack for edit mode
-                VStack(spacing: 0) {
-                    ForEach(items) { item in
-                        FoodItemRowView(
-                            item: item,
-                            onClickFunction: { onOpenDatePicker(item) },
-                            isSearchObject: false,
-                            isEditMode: isEditMode,
-                            isSelected: selectedItems.contains(item.id),
-                            onToggleSelection: { onToggleSelection(item) },
-                            buttonIcon: "calendar",
-                            showSwipeToDelete: false
-                        )
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 16)
-                    }
+            // Use LazyVStack for both modes to avoid List/ScrollView conflicts
+            LazyVStack(spacing: 0) {
+                ForEach(items) { item in
+                    FoodItemRowView(
+                        item: item,
+                        onClickFunction: { onOpenDatePicker(item) },
+                        isSearchObject: false,
+                        isEditMode: isEditMode,
+                        isSelected: selectedItems.contains(item.id),
+                        onToggleSelection: { onToggleSelection(item) },
+                        buttonIcon: "calendar",
+                        onDelete: { onDeleteItem(item) },
+                        showSwipeToDelete: !isEditMode
+                    )
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 16)
                 }
             }
         }
